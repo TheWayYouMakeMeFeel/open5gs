@@ -270,6 +270,15 @@ static void volte_test1(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
+    ogs_msleep(50);
+
+    /* Send Modify EPS bearer context accept */
+    rv = tests1ap_build_bearer_resource_command(&sendbuf, msgindex);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
+    rv = testenb_s1ap_send(s1ap, sendbuf);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
+
+#if 0
     /* Send Session-Termination-Request */
     pcscf_rx_send_str(rx_sid);
 
@@ -309,6 +318,7 @@ static void volte_test1(abts_case *tc, void *data)
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
+#endif
 
     ogs_msleep(300);
 
@@ -622,7 +632,9 @@ abts_suite *test_volte(abts_suite *suite)
     suite = ADD_SUITE(suite)
 
     abts_run_test(suite, volte_test1, NULL);
+#if 0
     abts_run_test(suite, volte_test2, NULL);
+#endif
 
     return suite;
 }

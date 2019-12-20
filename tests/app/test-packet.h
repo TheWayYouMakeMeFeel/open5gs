@@ -108,6 +108,8 @@ int tests1ap_build_modify_bearer_accept(
         ogs_pkbuf_t **pkbuf, int i);
 int tests1ap_build_deactivate_bearer_accept(
         ogs_pkbuf_t **pkbuf, int i);
+int tests1ap_build_bearer_resource_command(
+        ogs_pkbuf_t **pkbuf, int i);
 int tests1ap_build_path_switch_request(
         ogs_pkbuf_t **pkbuf, int target, 
         uint32_t mme_ue_s1ap_id, uint32_t enb_ue_s1ap_id,

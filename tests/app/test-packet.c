@@ -2405,6 +2405,40 @@ int tests1ap_build_deactivate_bearer_accept(
     return OGS_OK;
 }
 
+int tests1ap_build_bearer_resource_command(
+        ogs_pkbuf_t **pkbuf, int i)
+{
+    const char *payload[TESTS1AP_MAX_MESSAGE] = { 
+        "000d"
+        "403f000005000000 0200010008000200 01001a00161517da 68b007070203d405"
+        "04212001000508ff ffffff0064400800 2143650003039000 4340060021436509"
+        "29",
+        "",
+        "",
+
+        "",
+        "",
+        "",
+
+    };
+    uint16_t len[TESTS1AP_MAX_MESSAGE] = {
+        67,
+        0,
+        0,
+
+        0,
+        0,
+        0,
+    };
+    char hexbuf[OGS_MAX_SDU_LEN];
+    
+    *pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
+    ogs_pkbuf_put_data(*pkbuf, 
+        OGS_HEX(payload[i], strlen(payload[i]), hexbuf), len[i]);
+
+    return OGS_OK;
+}
+
 int tests1ap_build_path_switch_request(
         ogs_pkbuf_t **pkbuf, int target,
         uint32_t mme_ue_s1ap_id, uint32_t enb_ue_s1ap_id,
