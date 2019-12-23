@@ -20,7 +20,7 @@
 /*******************************************************************************
  * This file had been created by gtp-tlv.py script v0.1.0
  * Please do not modify this file but regenerate it via script.
- * Created on: 2019-12-20 14:24:32.599859 by acetcom
+ * Created on: 2019-12-23 11:28:04.952636 by acetcom
  * from 29274-d80.docx
  ******************************************************************************/
 
@@ -534,10 +534,10 @@ ogs_tlv_desc_t ogs_gtp_tlv_desc_pdn_type_0 =
 
 ogs_tlv_desc_t ogs_gtp_tlv_desc_pti_0 =
 {
-    OGS_TLV_VAR_STR,
+    OGS_TLV_UINT8,
     "PTI",
     OGS_GTP_PTI_TYPE,
-    0,
+    1,
     0,
     sizeof(ogs_gtp_tlv_pti_t),
     { NULL }

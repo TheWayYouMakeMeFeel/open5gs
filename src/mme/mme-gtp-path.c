@@ -440,3 +440,31 @@ void mme_gtp_send_delete_indirect_data_forwarding_tunnel_request(
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
 }
+
+void mme_gtp_send_bearer_resource_command(mme_bearer_t *bearer,
+        ogs_nas_bearer_resource_allocation_request_t *req)
+{
+    int rv;
+    ogs_gtp_header_t h;
+    ogs_pkbuf_t *pkbuf = NULL;
+    ogs_gtp_xact_t *xact = NULL;
+
+    mme_ue_t *mme_ue = NULL;
+
+    ogs_assert(bearer);
+    mme_ue = bearer->mme_ue;
+    ogs_assert(mme_ue);
+
+    memset(&h, 0, sizeof(ogs_gtp_header_t));
+    h.type = OGS_GTP_BEARER_RESOURCE_COMMAND_TYPE;
+    h.teid = mme_ue->sgw_s11_teid;
+
+    pkbuf = mme_s11_build_bearer_resource_command(h.type, bearer, req);
+    ogs_expect_or_return(pkbuf);
+
+    xact = ogs_gtp_xact_local_create(mme_ue->gnode, &h, pkbuf, timeout, mme_ue);
+    ogs_expect_or_return(xact);
+
+    rv = ogs_gtp_xact_commit(xact);
+    ogs_expect(rv == OGS_OK);
+}

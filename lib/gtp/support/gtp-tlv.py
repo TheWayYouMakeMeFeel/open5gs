@@ -367,10 +367,11 @@ type_list["Recovery"]["size"] = 1                       # Type : 3
 type_list["EBI"]["size"] = 1                            # Type : 73
 type_list["RAT Type"]["size"] = 1                       # Type : 82
 type_list["PDN Type"]["size"] = 1                       # Type : 99
+type_list["PTI"]["size"] = 1                            # Type : 100
 type_list["Port Number"]["size"] = 2                    # Type : 126
 type_list["APN Restriction"]["size"] = 1                # Type : 127
 type_list["Selection Mode"]["size"] = 1                 # Type : 128
-type_list["Node Type"]["size"] = 1                 # Type : 128
+type_list["Node Type"]["size"] = 1                      # Type : 135
 
 f = open(outdir + 'message.h', 'w')
 output_header_to_file(f)

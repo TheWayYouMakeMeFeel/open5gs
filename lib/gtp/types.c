@@ -93,6 +93,70 @@ int16_t ogs_gtp_build_bearer_qos(ogs_tlv_octet_t *octet,
     return octet->len;
 }
 
+/* 8.16 Flow Quality of Service (Flow QoS) */
+int16_t ogs_gtp_parse_flow_qos(
+    ogs_gtp_flow_qos_t *flow_qos, ogs_tlv_octet_t *octet)
+{
+    ogs_gtp_flow_qos_t *source = (ogs_gtp_flow_qos_t *)octet->data;
+    int16_t size = 0;
+
+    ogs_assert(flow_qos);
+    ogs_assert(octet);
+    ogs_assert(octet->len == GTP_FLOW_QOS_LEN);
+
+    memset(flow_qos, 0, sizeof(ogs_gtp_flow_qos_t));
+
+    flow_qos->qci = source->qci;
+    size++;
+
+    flow_qos->ul_mbr = ogs_buffer_to_uint64(
+            (unsigned char *)octet->data + size, 5);
+    size += 5;
+    flow_qos->dl_mbr = ogs_buffer_to_uint64(
+            (unsigned char *)octet->data + size, 5);
+    size += 5;
+    flow_qos->ul_gbr = ogs_buffer_to_uint64(
+            (unsigned char *)octet->data + size, 5);
+    size += 5;
+    flow_qos->dl_gbr = ogs_buffer_to_uint64(
+            (unsigned char *)octet->data + size, 5);
+    size += 5;
+
+    ogs_assert(size == octet->len);
+    
+    return size;
+}
+int16_t ogs_gtp_build_flow_qos(ogs_tlv_octet_t *octet,
+        ogs_gtp_flow_qos_t *flow_qos, void *data, int data_len)
+{
+    ogs_gtp_flow_qos_t target;
+    int16_t size = 0;
+
+    ogs_assert(flow_qos);
+    ogs_assert(octet);
+    ogs_assert(data);
+    ogs_assert(data_len >= GTP_FLOW_QOS_LEN);
+
+    octet->data = data;
+    memcpy(&target, flow_qos, sizeof(ogs_gtp_flow_qos_t));
+
+    memcpy((unsigned char *)octet->data + size, &target, 2);
+    size += 1;
+
+    ogs_uint64_to_buffer(target.ul_mbr, 5, (unsigned char *)octet->data + size);
+    size += 5;
+    ogs_uint64_to_buffer(target.dl_mbr, 5, (unsigned char *)octet->data + size);
+    size += 5;
+    ogs_uint64_to_buffer(target.ul_gbr, 5, (unsigned char *)octet->data + size);
+    size += 5;
+    ogs_uint64_to_buffer(target.dl_gbr, 5, (unsigned char *)octet->data + size);
+    size += 5;
+
+    octet->len = size;
+
+    return octet->len;
+}
+
 /* 8.19 EPS Bearer Level Traffic Flow Template (Bearer TFT) 
  * See subclause 10.5.6.12 in 3GPP TS 24.008 [13]. */
 int16_t ogs_gtp_build_tft(

@@ -386,7 +386,7 @@ ogs_pkbuf_t *mme_s11_build_create_bearer_response(
     ogs_assert(bearer);
     mme_ue = bearer->mme_ue;
     ogs_assert(mme_ue);
-    
+
     ogs_debug("[MME] Create Bearer Response");
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
             mme_ue->mme_s11_teid, mme_ue->sgw_s11_teid);
@@ -724,6 +724,64 @@ ogs_pkbuf_t *mme_s11_build_create_indirect_data_forwarding_tunnel_request(
         }
         sess = mme_sess_next(sess);
     }
+
+    gtp_message.h.type = type;
+    return ogs_gtp_build_msg(&gtp_message);
+}
+
+ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
+        uint8_t type, mme_bearer_t *bearer,
+        ogs_nas_bearer_resource_allocation_request_t *req)
+{
+    ogs_gtp_message_t gtp_message;
+    ogs_gtp_bearer_resource_command_t *cmd =
+        &gtp_message.bearer_resource_command;
+
+    ogs_nas_eps_quality_of_service_t *required_traffic_flow_qos = NULL;
+
+    ogs_gtp_flow_qos_t flow_qos;
+    char flow_qos_buf[GTP_FLOW_QOS_LEN];
+
+    mme_ue_t *mme_ue = NULL;
+    mme_sess_t *sess = NULL;
+    mme_bearer_t *linked_bearer = NULL;
+
+    ogs_assert(bearer);
+    sess = bearer->sess;
+    ogs_assert(sess);
+    mme_ue = sess->mme_ue;
+    ogs_assert(mme_ue);
+
+    required_traffic_flow_qos = &req->required_traffic_flow_qos;
+
+    linked_bearer = mme_linked_bearer(bearer);
+    ogs_assert(linked_bearer);
+
+    ogs_debug("[MME] Bearer Resource Command");
+    ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
+            mme_ue->mme_s11_teid, mme_ue->sgw_s11_teid);
+
+    memset(&gtp_message, 0, sizeof(ogs_gtp_message_t));
+
+    /* Linked Bearer Context : EBI */
+    cmd->linked_eps_bearer_id.presence = 1;
+    cmd->linked_eps_bearer_id.u8 = bearer->ebi;
+
+    /* Procedure Transaction ID(PTI) */
+    cmd->procedure_transaction_id.presence = 1;
+    cmd->procedure_transaction_id.u8 = sess->pti;
+
+    /* Flow QoS */
+    memset(&flow_qos, 0, sizeof(flow_qos));
+    flow_qos.qci = required_traffic_flow_qos->qci;
+    ogs_gtp_build_flow_qos(
+            &cmd->flow_quality_of_service,
+            &flow_qos, flow_qos_buf, GTP_FLOW_QOS_LEN);
+    cmd->flow_quality_of_service.presence = 1;
+
+    /* Bearer Context : EBI */
+    cmd->eps_bearer_id.presence = 1;
+    cmd->eps_bearer_id.u8 = bearer->ebi;
 
     gtp_message.h.type = type;
     return ogs_gtp_build_msg(&gtp_message);

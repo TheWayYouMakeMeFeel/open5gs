@@ -195,6 +195,26 @@ int16_t ogs_gtp_parse_bearer_qos(
 int16_t ogs_gtp_build_bearer_qos(ogs_tlv_octet_t *octet,
     ogs_gtp_bearer_qos_t *bearer_qos, void *data, int data_len);
 
+/* 8.16 Flow Quality of Service (Flow QoS) */
+#define GTP_FLOW_QOS_LEN 21
+typedef struct ogs_gtp_flow_qos_s {
+    uint8_t qci; /* specified in 3GPP TS 23.203 [48]. */
+
+    /* specified in 3GPP TS 36.413 [10]. */
+    uint64_t ul_mbr;
+    uint64_t dl_mbr;
+    uint64_t ul_gbr;
+    uint64_t dl_gbr;
+
+    /* NOTE : The encoding in 3GPP TS 24.301 [23] and 3GPP TS 36.413 [10] 
+     * is different from the encoding within this specification.  */
+} __attribute__ ((packed)) ogs_gtp_flow_qos_t;
+
+int16_t ogs_gtp_parse_flow_qos(
+    ogs_gtp_flow_qos_t *flow_qos, ogs_tlv_octet_t *octet);
+int16_t ogs_gtp_build_flow_qos(ogs_tlv_octet_t *octet,
+    ogs_gtp_flow_qos_t *flow_qos, void *data, int data_len);
+
 /* 8.17 RAT Type */
 #define OGS_GTP_RAT_TYPE_UTRAN                                  1
 #define OGS_GTP_RAT_TYPE_GERAN                                  2
