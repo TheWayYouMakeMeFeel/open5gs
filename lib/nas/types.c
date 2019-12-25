@@ -59,6 +59,68 @@ static uint8_t br_calculate(
         return length;
     }
 
+#if RELEASE_15_6_0
+    /*
+     * Octet 7 : 00000000
+     * Use the value indicated by the APN-AMBR for downlink and
+     *   APN-AMBR for downlink (extended) in octets 3 and 5.
+     *
+     * Octet 7 : 00000001 - 00111101
+     * 256Mbps + (the binary coded value in 8 bits * 4Mbps)
+     * giving a range of 260 Mbps to 500 Mbps in 4 Mbps increments.
+     *
+     * Octet 7 : 00111110 - 10100001
+     * 500Mbps + (the binary coded value in 8 bits - 00111101 * 10Mbps)
+     * giving a range of 510 Mbps to 1500 Mbps in 10 Mbps increments.
+     *
+     * Octet 7 : 10100010 - 11110110
+     * 1500Mbps + (the binary coded value in 8 bits - 10100001 * 100Mbps)
+     * giving a range of 1600 Mbps to 10 Gbps Mbps in 100 Mbps increaments.
+     */
+
+    /* giving a range of values from 260M to 500M in 4M increments */
+    if (input >= (260*1024) && input <= (500*1024)) {
+        *extended2 = (input - (256*1024)) / (4*1024);
+        length = ogs_max(length, 3);
+
+        input %= (256*1024);
+    }
+    /* if a range of values from 500M to 510M */
+    else if (input > (500*1024) && input < (510*1024)) {
+        *extended2 = 0b00111101;
+        length = ogs_max(length, 3);
+
+        input %= (256*1024);
+    }
+    /* giving a range of values from 510M to 1500M in 10M increments */
+    else if (input >= (510*1024) && input <= (1500*1024)) {
+        *extended2 = (input - (500*1024)) / (10*1024) + 0b00111101;
+        length = ogs_max(length, 3);
+
+        input %= (256*1024);
+    }
+    /* if a range of values from 1500M to 1600M */
+    else if (input > (1500*1024) && input < (1600*1024)) {
+        *extended2 = 0b10100001;
+        length = ogs_max(length, 3);
+
+        input %= (256*1024);
+    }
+    /* giving a range of values from 1600M to 10000M in 100M increments */
+    else if (input >= (1600*1024) && input <= (10*1000*1024)) {
+        *extended2 = (input - (1500*1024)) / (100*1024) + 0b10100001;
+        length = ogs_max(length, 3);
+
+        input %= (256*1024);
+    }
+    /* if the sending entity want to indicate BR higher than 10000Mbps */
+    else if (input > (10*1000*1024)) {
+        *extended2 = 0b11110110;
+        length = ogs_max(length, 3);
+
+        input %= (256*1024);
+    }
+#else /* Release 14 */
     /*
      * Octet 7 : 00000000 
      * Use the value indicated by the APN-AMBR for downlink and
@@ -70,26 +132,24 @@ static uint8_t br_calculate(
      *   (the value indicated by the APN-AMBR for downlink
      *      and APN-AMBR for downlink (extended) in octets 3 and 5),
      * giving a range of 256 Mbps to 65280 Mbps.  */
-    if (input > (65200*1024))
-    {
+    if (input > (65200*1024)) {
         *extended2 = 0b11111110;
         length = ogs_max(length, 3);
 
         input %= (256*1024);
     }
-    else if (input >= (256*1024) && input <= (65200*1024))
-    {
+    else if (input >= (256*1024) && input <= (65200*1024)) {
         *extended2 = input / (256*1024);
         length = ogs_max(length, 3);
 
         input %= (256*1024);
     }
+#endif
 
     /* Octet 3 : 00000001 -  00111111 
      * The APN-AMBR is binary coded in 8 bits, using a granularity of 1 kbps
      * giving a range of values from 1 kbps to 63 kbps in 1 kbps increments. */
-    if (input >= 1 && input <= 63)
-    {
+    if (input >= 1 && input <= 63) {
         *br = input;
         length = ogs_max(length, 1);
     }
@@ -98,14 +158,12 @@ static uint8_t br_calculate(
      *   64 kbps + ((the binary coded value in 8 bits –01000000) * 8 kbps) 
      * giving a range of values from 64 kbps to 568 kbps 
      *   in 8 kbps increments. */
-    else if (input >= 64 && input <= 568)
-    {
+    else if (input >= 64 && input <= 568) {
         *br = ((input - 64) / 8) + 0b01000000;
         length = ogs_max(length, 1);
     }
     /* Set to 568 Kbps */
-    else if (input > 568 && input < 576)
-    {
+    else if (input > 568 && input < 576) {
         *br = 0b01111111;
         length = ogs_max(length, 1);
     }
@@ -114,14 +172,12 @@ static uint8_t br_calculate(
      *   576 kbps + ((the binary coded value in 8 bits –10000000) * 64 kbps)
      * giving a range of values from 576 kbps to 8640 kbps
      *   in 64 kbps increments. */
-    else if (input >= 576 && input <= 8640)
-    {
+    else if (input >= 576 && input <= 8640) {
         *br = ((input - 576) / 64) + 0b10000000;
         length = ogs_max(length, 1);
     }
     /* Set to 8640 Kbps */
-    else if (input > 8640 && input < 8700)
-    {
+    else if (input > 8640 && input < 8700) {
         *br = 0b11111110;
         length = ogs_max(length, 1);
     }
@@ -142,15 +198,13 @@ static uint8_t br_calculate(
      * giving a range of values from 8700 kbps to 16000 kbps
      *   in 100 kbps increments.
      */
-    else if (input >= 8700 && input <= 16000)
-    {
+    else if (input >= 8700 && input <= 16000) {
         *br = 0b11111110;
         *extended = ((input - 8600) / 100);
         length = ogs_max(length, 2);
     }
     /* Set to 16000 Kbps */
-    else if (input > 16000 && input < (17*1024))
-    {
+    else if (input > 16000 && input < (17*1024)) {
         *br = 0b11111110;
         *extended = 0b01001010;
         length = ogs_max(length, 2);
@@ -160,15 +214,13 @@ static uint8_t br_calculate(
      *   16 Mbps + ((the binary coded value in 8 bits - 01001010) * 1 Mbps),
      * giving a range of values from 17 Mbps to 128 Mbps
      *   in 1 Mbps increments. */
-    else if (input >= (17*1024) && input <= (128*1024))
-    {
+    else if (input >= (17*1024) && input <= (128*1024)) {
         *br = 0b11111110;
         *extended = ((input - (16*1024)) / (1*1024)) + 0b01001010;
         length = ogs_max(length, 2);
     }
     /* Set to 128 Mbps */
-    else if (input > (128*1024) && input < (130*1024))
-    {
+    else if (input > (128*1024) && input < (130*1024)) {
         *br = 0b11111110;
         *extended = 0b10111010;
         length = ogs_max(length, 2);
@@ -178,8 +230,7 @@ static uint8_t br_calculate(
      *   128 Mbps + ((the binary coded value in 8 bits - 10111010) * 2 Mbps),
      * giving a range of values from 130 Mbps to 256 Mbps
      *   in 2 Mbps increments. */
-    else if (input >= (130*1024) && input <= (256*1024))
-    {
+    else if (input >= (130*1024) && input <= (256*1024)) {
         *br = 0b11111110;
         *extended = ((input - (128*1024)) / (2*1024)) + 0b10111010;
         length = ogs_max(length, 2);
