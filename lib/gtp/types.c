@@ -94,6 +94,96 @@ int16_t ogs_gtp_build_bearer_qos(ogs_tlv_octet_t *octet,
 }
 
 /* 8.16 Flow Quality of Service (Flow QoS) */
+uint64_t ogs_gtp_qos_to_kbps(uint8_t br, uint8_t extended, uint8_t extended2)
+{
+    /*
+     * Octet 12 : 00000000
+     * 00000000 Use the value indicated by the bit rate in octet 4 and 8
+     *
+     * Octet 12 : 00000001 - 00111101
+     * 256Mbps + the binary coded value in 8 bits * 4Mbps
+     * giving a range of 260 Mbps to 500 Mbps in 4 Mbps increments.
+     *
+     * Octet 12 : 00111110 - 10100001
+     * 500Mbps + (the binary coded value in 8 bits - 00111101) * 10Mbps
+     * giving a range of 510 Mbps to 1500 Mbps in 10 Mbps increments.
+     *
+     * Octet 12 : 10100010 - 11110110
+     * 1500Mbps + (the binary coded value in 8 bits - 10100001) * 100Mbps
+     * giving a range of 1600 Mbps to 10 Gbps Mbps in 100 Mbps increaments.
+     */
+    if (extended2 >= 0b00000001 && extended2 <= 0b00111101) {
+        return 256*1024 + extended2 * 4*1024;
+    } else if (extended2 >= 0b00111110 && extended2 <= 0b10100001) {
+        return 500*1024 + (extended2 - 0b00111101) * 10*1024;
+    } else if (extended2 >= 0b10100010 && extended2 <= 0b11110110) {
+        return 1500*1024 + (extended2 - 0b10100001) * 100*1024;
+    } else if (extended2 > 0b11110110) {
+        ogs_error("Protocol Error : extended2[%x]", extended2);
+        return 10*1000*1024; /* 10*1000 Mbps */
+
+    /*
+     * Octet 8
+     * 00000000 Use the value indicated by the bit rate in octet 4
+     *
+     * Octet 8 : 00000001 - 01001010
+     * 8600 kbps + (the binary coded value in 8 bits) * 100 kbps
+     * giving a range of 8700 kbps to 16000 kbps in 100 kbps increments.
+     *
+     * Octet 8 : 01001011 - 10111010
+     * 16 Mbps + (the binary coded value in 8 bits - 01001010) * 1 Mbps
+     * giving a range of 17 Mbps to 128 Mbps in 1 Mbps increments.
+     *
+     * Octet 8 : 10111011 - 11111010
+     * 128 Mbps + (the binary coded value in 8 bits - 10111010) * 2 Mbps
+     * giving a range of 130 Mbps to 256 Mbps in 2 Mbps increments.
+     */
+    } else if (extended >= 0b00000001 && extended <= 0b01001010) {
+        return 8600 + extended * 100;
+    } else if (extended >= 0b01001011 && extended <= 0b10111010) {
+        return 16*1024 + (extended - 0b01001010) * 1*1024;
+    } else if (extended >= 0b10111011 && extended <= 0b11111010) {
+        return 128*1024 + (extended - 0b10111010) * 2*1024;
+    } else if (extended > 0b11111010) {
+        ogs_error("Protocol Error : extended[%x]", extended);
+        return 256*1024; /* 256 Mbps */
+
+    /*
+     * Octet 4
+     *
+     * In UE to network direction:
+     * 00000000 Subscribed maximum bit rate
+     *
+     * In network to UE direction:
+     * 00000000 Reserved
+     *
+     * Octet 4 : 00000001 - 00111111
+     * giving a range of 1 kbps to 63 kbps in 1 kbps increments.
+     *
+     * Octet 4 : 01000000 - 01111111
+     * 64 kbps + (the binary coded value in 8 bits - 01000000) * 8 kbps
+     * giving a range of 64 kbps to 568 kbps in 8 kbps increments.
+     *
+     * Octet 4 : 10000000 - 11111110
+     * 576 kbps + (the binary coded value in 8 bits – 10000000) * 64 kbps
+     * giving a range of 576 kbps to 8640 kbps in 64 kbps increments.
+     */
+    } else if (br == 0xff) {
+        return 0; /* 0kbps */
+    } else if (br >= 0b00000001 && br <= 0b00111111) {
+        return br;
+    } else if (br >= 0b01000000 && br <= 0b01111111) {
+        return 64 + (br - 0b01000000) * 8;
+    } else if (br >= 0b10000000 && br <= 0b11111110) {
+        return 576 + (br - 0b10000000) * 64;
+    }
+
+    ogs_fatal("invalid param : br[%d], extended[%d], extended2[%d]",
+            br, extended, extended2);
+    ogs_assert_if_reached();
+    return 0;
+}
+
 int16_t ogs_gtp_parse_flow_qos(
     ogs_gtp_flow_qos_t *flow_qos, ogs_tlv_octet_t *octet)
 {

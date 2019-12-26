@@ -774,6 +774,27 @@ ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
     /* Flow QoS */
     memset(&flow_qos, 0, sizeof(flow_qos));
     flow_qos.qci = required_traffic_flow_qos->qci;
+    flow_qos.ul_mbr = required_traffic_flow_qos->ul_mbr == 0 ? 0:
+            ogs_gtp_qos_to_kbps(
+                required_traffic_flow_qos->ul_mbr,
+                required_traffic_flow_qos->ul_mbr_extended,
+                required_traffic_flow_qos->ul_mbr_extended2);
+    flow_qos.dl_mbr = required_traffic_flow_qos->dl_mbr == 0 ? 0:
+            ogs_gtp_qos_to_kbps(
+                required_traffic_flow_qos->dl_mbr,
+                required_traffic_flow_qos->dl_mbr_extended,
+                required_traffic_flow_qos->dl_mbr_extended2);
+    flow_qos.ul_gbr = required_traffic_flow_qos->ul_gbr == 0 ? 0:
+            ogs_gtp_qos_to_kbps(
+                required_traffic_flow_qos->ul_gbr,
+                required_traffic_flow_qos->ul_gbr_extended,
+                required_traffic_flow_qos->ul_gbr_extended2);
+    flow_qos.dl_gbr = required_traffic_flow_qos->dl_gbr == 0 ? 0:
+            ogs_gtp_qos_to_kbps(
+                required_traffic_flow_qos->dl_gbr,
+                required_traffic_flow_qos->dl_gbr_extended,
+                required_traffic_flow_qos->dl_gbr_extended2);
+
     ogs_gtp_build_flow_qos(
             &cmd->flow_quality_of_service,
             &flow_qos, flow_qos_buf, GTP_FLOW_QOS_LEN);

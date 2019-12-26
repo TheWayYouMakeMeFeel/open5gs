@@ -210,6 +210,8 @@ typedef struct ogs_gtp_flow_qos_s {
      * is different from the encoding within this specification.  */
 } __attribute__ ((packed)) ogs_gtp_flow_qos_t;
 
+uint64_t ogs_gtp_qos_to_kbps(uint8_t br, uint8_t extended, uint8_t extended2);
+
 int16_t ogs_gtp_parse_flow_qos(
     ogs_gtp_flow_qos_t *flow_qos, ogs_tlv_octet_t *octet);
 int16_t ogs_gtp_build_flow_qos(ogs_tlv_octet_t *octet,

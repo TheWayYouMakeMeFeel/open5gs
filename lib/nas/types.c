@@ -207,11 +207,11 @@ static uint8_t nas_qos_from_kbps(
      * giving a range of 1 kbps to 63 kbps in 1 kbps increments.
      *
      * Octet 4 : 01000000 - 01111111 
-     * 64 kbps + (the binary coded value in 8 bits - 01000000) * 8 kbps)
+     * 64 kbps + (the binary coded value in 8 bits - 01000000) * 8 kbps
      * giving a range of 64 kbps to 568 kbps in 8 kbps increments.
      *
-     * Octet 4 : 10000000 - 111111110
-     * 576 kbps + (the binary coded value in 8 bits – 10000000) * 64 kbps)
+     * Octet 4 : 10000000 - 11111110
+     * 576 kbps + (the binary coded value in 8 bits – 10000000) * 64 kbps
      * giving a range of 576 kbps to 8640 kbps in 64 kbps increments.
      */
 
@@ -243,19 +243,18 @@ static uint8_t nas_qos_from_kbps(
 
     /*
      * Octet 8
-     *
      * 00000000 Use the value indicated by the bit rate in octet 4
      *
      * Octet 8 : 00000001 - 01001010
-     * 8600 kbps + (the binary coded value in 8 bits) * 100 kbps)
+     * 8600 kbps + (the binary coded value in 8 bits) * 100 kbps
      * giving a range of 8700 kbps to 16000 kbps in 100 kbps increments.
      *
      * Octet 8 : 01001011 - 10111010
-     * 16 Mbps + (the binary coded value in 8 bits - 01001010) * 1 Mbps)
+     * 16 Mbps + (the binary coded value in 8 bits - 01001010) * 1 Mbps
      * giving a range of 17 Mbps to 128 Mbps in 1 Mbps increments.
      *
      * Octet 8 : 10111011 - 11111010
-     * 128 Mbps + (the binary coded value in 8 bits - 10111010) * 2 Mbps)
+     * 128 Mbps + (the binary coded value in 8 bits - 10111010) * 2 Mbps
      * giving a range of 130 Mbps to 256 Mbps in 2 Mbps increments.
      */
 
@@ -298,19 +297,18 @@ static uint8_t nas_qos_from_kbps(
 
     /*
      * Octet 12 : 00000000
-     * Use the value indicated by the APN-AMBR for downlink and
-     *   APN-AMBR for downlink (extended) in octets 3 and 5.
+     * 00000000 Use the value indicated by the bit rate in octet 4 and 8
      *
      * Octet 12 : 00000001 - 00111101
-     * 256Mbps + (the binary coded value in 8 bits * 4Mbps)
+     * 256Mbps + the binary coded value in 8 bits * 4Mbps
      * giving a range of 260 Mbps to 500 Mbps in 4 Mbps increments.
      *
      * Octet 12 : 00111110 - 10100001
-     * 500Mbps + (the binary coded value in 8 bits - 00111101 * 10Mbps)
+     * 500Mbps + (the binary coded value in 8 bits - 00111101) * 10Mbps
      * giving a range of 510 Mbps to 1500 Mbps in 10 Mbps increments.
      *
      * Octet 12 : 10100010 - 11110110
-     * 1500Mbps + (the binary coded value in 8 bits - 10100001 * 100Mbps)
+     * 1500Mbps + (the binary coded value in 8 bits - 10100001) * 100Mbps
      * giving a range of 1600 Mbps to 10 Gbps Mbps in 100 Mbps increaments.
      */
 
