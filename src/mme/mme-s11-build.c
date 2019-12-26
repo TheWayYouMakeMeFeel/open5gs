@@ -738,6 +738,7 @@ ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
         &gtp_message.bearer_resource_command;
 
     ogs_nas_eps_quality_of_service_t *required_traffic_flow_qos = NULL;
+    ogs_nas_traffic_flow_aggregate_description_t *traffic_flow_aggregate = NULL;
 
     ogs_gtp_flow_qos_t flow_qos;
     char flow_qos_buf[GTP_FLOW_QOS_LEN];
@@ -753,6 +754,7 @@ ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
     ogs_assert(mme_ue);
 
     required_traffic_flow_qos = &req->required_traffic_flow_qos;
+    traffic_flow_aggregate = &req->traffic_flow_aggregate;
 
     linked_bearer = mme_linked_bearer(bearer);
     ogs_assert(linked_bearer);
@@ -771,7 +773,7 @@ ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
     cmd->procedure_transaction_id.presence = 1;
     cmd->procedure_transaction_id.u8 = sess->pti;
 
-    /* Flow QoS */
+    /* Flow Quality of Service(QoS) */
     memset(&flow_qos, 0, sizeof(flow_qos));
     flow_qos.qci = required_traffic_flow_qos->qci;
     flow_qos.ul_mbr = required_traffic_flow_qos->ul_mbr == 0 ? 0:
@@ -800,9 +802,10 @@ ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
             &flow_qos, flow_qos_buf, GTP_FLOW_QOS_LEN);
     cmd->flow_quality_of_service.presence = 1;
 
-    /* Bearer Context : EBI */
-    cmd->eps_bearer_id.presence = 1;
-    cmd->eps_bearer_id.u8 = bearer->ebi;
+    /* Traffic Aggregate Description(TAD) */
+    cmd->traffic_aggregate_description.presence = 1;
+    cmd->traffic_aggregate_description.data = traffic_flow_aggregate->buffer;
+    cmd->traffic_aggregate_description.len = traffic_flow_aggregate->length;
 
     gtp_message.h.type = type;
     return ogs_gtp_build_msg(&gtp_message);
