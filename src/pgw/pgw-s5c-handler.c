@@ -368,7 +368,6 @@ void pgw_s5c_handle_bearer_resource_command(
     ogs_assert(bearer);
 
     memset(&h, 0, sizeof(ogs_gtp_header_t));
-
     h.type = OGS_GTP_UPDATE_BEARER_REQUEST_TYPE;
     h.teid = sess->sgw_s5c_teid;
 
@@ -382,6 +381,4 @@ void pgw_s5c_handle_bearer_resource_command(
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
-
-    ogs_fatal("OK...");
 }
