@@ -309,3 +309,59 @@ void pgw_s5c_handle_delete_bearer_response(
 
     pgw_bearer_remove(bearer);
 }
+
+void pgw_s5c_handle_bearer_resource_command(
+        pgw_sess_t *sess, ogs_gtp_xact_t *xact,
+        ogs_gtp_bearer_resource_command_t *cmd)
+{
+    int rv;
+    uint8_t cause_value = 0;
+    pgw_bearer_t *bearer = NULL;
+
+    ogs_assert(xact);
+    ogs_assert(sess);
+    ogs_assert(cmd);
+
+    ogs_debug("[PGW] Bearer Resource Command");
+    ogs_debug("    SGW_S5C_TEID[0x%x] PGW_S5C_TEID[0x%x]",
+            sess->sgw_s5c_teid, sess->pgw_s5c_teid);
+
+    cause_value = OGS_GTP_CAUSE_REQUEST_ACCEPTED;
+
+    if (cmd->linked_eps_bearer_id.presence == 0) {
+        ogs_error("No Linked EPS Bearer ID");
+        cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
+    } else {
+        bearer = pgw_bearer_find_by_ebi(
+                sess, cmd->linked_eps_bearer_id.u8);
+        if (!bearer) {
+            ogs_error("No Context for Linked EPS Bearer ID[%d]",
+                    cmd->linked_eps_bearer_id.u8);
+            cause_value = OGS_GTP_CAUSE_CONTEXT_NOT_FOUND;
+        }
+    }
+
+    if (cmd->procedure_transaction_id.presence == 0) {
+        ogs_error("No PTI");
+        cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
+    }
+    if (cmd->flow_quality_of_service.presence == 0) {
+        ogs_error("No Flow Quality of Service(QOS)");
+        cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
+    }
+    if (cmd->traffic_aggregate_description.presence == 0) {
+        ogs_error("No Traffic aggregate description(TAD)");
+        cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
+    }
+
+    if (cause_value == OGS_GTP_CAUSE_REQUEST_ACCEPTED) {
+        ogs_gtp_send_error_message(xact, sess ? sess->sgw_s5c_teid : 0,
+                OGS_GTP_BEARER_RESOURCE_FAILURE_INDICATION_TYPE, cause_value);
+        return;
+    }
+
+    rv = ogs_gtp_xact_commit(xact);
+    ogs_expect(rv == OGS_OK);
+
+    ogs_fatal("OK...");
+}

@@ -521,3 +521,38 @@ void sgw_s5c_handle_delete_bearer_request(ogs_gtp_xact_t *s5c_xact,
     ogs_expect(rv == OGS_OK);
 }
 
+void sgw_s5c_handle_bearer_resource_failure_indication(ogs_gtp_xact_t *s5c_xact,
+        sgw_sess_t *sess, ogs_gtp_message_t *message)
+{
+    uint8_t cause_value = 0;
+    ogs_gtp_xact_t *s11_xact = NULL;
+    ogs_gtp_bearer_resource_failure_indication_t *ind = NULL;
+
+    ogs_assert(s5c_xact);
+    s11_xact = s5c_xact->assoc_xact;
+    ogs_assert(s11_xact);
+    ogs_assert(message);
+
+    ogs_debug("[SGW] Bearer Resource Failure Indication");
+
+    ind = &message->bearer_resource_failure_indication;
+
+    if (!sess) {
+        ogs_warn("No Context");
+        cause_value = OGS_GTP_CAUSE_CONTEXT_NOT_FOUND;
+    }
+
+    if (ind->cause.presence) {
+        ogs_gtp_cause_t *cause = ind->cause.data;
+        ogs_assert(cause);
+
+        cause_value = cause->value;
+    } else {
+        ogs_error("No Cause");
+        cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
+    }
+
+    ogs_gtp_send_error_message(s11_xact, sess ? sess->pgw_s5c_teid : 0,
+            OGS_GTP_BEARER_RESOURCE_FAILURE_INDICATION_TYPE, cause_value);
+}
+

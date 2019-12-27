@@ -1263,7 +1263,7 @@ void sgw_s11_handle_bearer_resource_command(ogs_gtp_xact_t *s11_xact,
 
     if (cause_value != OGS_GTP_CAUSE_REQUEST_ACCEPTED) {
         ogs_gtp_send_error_message(s11_xact, sgw_ue ? sgw_ue->mme_s11_teid : 0,
-                OGS_GTP_DELETE_BEARER_FAILURE_INDICATION_TYPE, cause_value);
+                OGS_GTP_BEARER_RESOURCE_FAILURE_INDICATION_TYPE, cause_value);
         return;
     }
 

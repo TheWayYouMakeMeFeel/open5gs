@@ -755,10 +755,12 @@ ogs_gtp_xact_t *ogs_gtp_xact_find_by_xid(
         list = &gnode->local_list;
         break;
     case GTP_XACT_FINAL_STAGE:
+#if 0   /* ERROR */
         if (xid & GTP_CMD_XACT_ID)
             list = &gnode->remote_list;
         else
-            list = &gnode->local_list;
+#endif
+        list = &gnode->local_list;
         break;
     default:
         ogs_assert_if_reached();

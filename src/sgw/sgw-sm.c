@@ -197,6 +197,10 @@ void sgw_state_operational(ogs_fsm_t *s, sgw_event_t *e)
             sgw_s5c_handle_delete_bearer_request(xact, sess,
                     &message);
             break;
+        case OGS_GTP_BEARER_RESOURCE_FAILURE_INDICATION_TYPE:
+            sgw_s5c_handle_bearer_resource_failure_indication(xact, sess,
+                    &message);
+            break;
         default:
             ogs_warn("Not implmeneted(type:%d)", message.h.type);
             break;
