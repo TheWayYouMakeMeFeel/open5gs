@@ -38,9 +38,9 @@ ogs_pkbuf_t *pgw_s5c_build_create_bearer_request(
         uint8_t type, pgw_bearer_t *bearer);
 ogs_pkbuf_t *pgw_s5c_build_update_bearer_request(
         uint8_t type, pgw_bearer_t *bearer,
-        int qos_presence, int tft_presence);
+        uint8_t pti, int qos_presence, int tft_presence);
 ogs_pkbuf_t *pgw_s5c_build_delete_bearer_request(
-        uint8_t type, pgw_bearer_t *bearer);
+        uint8_t type, pgw_bearer_t *bearer, uint8_t pti);
 #ifdef __cplusplus
 }
 #endif

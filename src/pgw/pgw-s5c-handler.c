@@ -21,6 +21,7 @@
 #include "pgw-context.h"
 #include "pgw-gtp-path.h"
 #include "pgw-fd-path.h"
+#include "pgw-s5c-build.h"
 #include "pgw-s5c-handler.h"
 
 void pgw_s5c_handle_create_session_request(
@@ -316,6 +317,10 @@ void pgw_s5c_handle_bearer_resource_command(
 {
     int rv;
     uint8_t cause_value = 0;
+
+    ogs_gtp_header_t h;
+    ogs_pkbuf_t *pkbuf = NULL;
+
     pgw_bearer_t *bearer = NULL;
 
     ogs_assert(xact);
@@ -354,11 +359,26 @@ void pgw_s5c_handle_bearer_resource_command(
         cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
     }
 
-    if (cause_value == OGS_GTP_CAUSE_REQUEST_ACCEPTED) {
+    if (cause_value != OGS_GTP_CAUSE_REQUEST_ACCEPTED) {
         ogs_gtp_send_error_message(xact, sess ? sess->sgw_s5c_teid : 0,
                 OGS_GTP_BEARER_RESOURCE_FAILURE_INDICATION_TYPE, cause_value);
         return;
     }
+
+    ogs_assert(bearer);
+
+    memset(&h, 0, sizeof(ogs_gtp_header_t));
+
+    h.type = OGS_GTP_UPDATE_BEARER_REQUEST_TYPE;
+    h.teid = sess->sgw_s5c_teid;
+
+    pkbuf = pgw_s5c_build_update_bearer_request(
+            h.type, bearer,
+            cmd->procedure_transaction_id.u8, 0, 0);
+    ogs_expect_or_return(pkbuf);
+
+    rv = ogs_gtp_xact_update_tx(xact, &h, pkbuf);
+    ogs_expect_or_return(rv == OGS_OK);
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);

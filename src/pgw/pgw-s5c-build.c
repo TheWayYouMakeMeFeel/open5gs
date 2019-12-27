@@ -359,7 +359,7 @@ ogs_pkbuf_t *pgw_s5c_build_create_bearer_request(
 
 ogs_pkbuf_t *pgw_s5c_build_update_bearer_request(
         uint8_t type, pgw_bearer_t *bearer,
-        int qos_presence, int tft_presence)
+        uint8_t pti, int qos_presence, int tft_presence)
 {
     pgw_sess_t *sess = NULL;
     pgw_bearer_t *linked_bearer = NULL;
@@ -388,6 +388,12 @@ ogs_pkbuf_t *pgw_s5c_build_update_bearer_request(
     req->bearer_contexts.presence = 1;
     req->bearer_contexts.eps_bearer_id.presence = 1;
     req->bearer_contexts.eps_bearer_id.u8 = bearer->ebi;
+
+    /* PTI */
+    if (pti) {
+        req->procedure_transaction_id.presence = 1;
+        req->procedure_transaction_id.u8 = pti;
+    }
 
     /* Bearer QoS */
     if (qos_presence == 1) {
@@ -421,7 +427,7 @@ ogs_pkbuf_t *pgw_s5c_build_update_bearer_request(
 }
 
 ogs_pkbuf_t *pgw_s5c_build_delete_bearer_request(
-        uint8_t type, pgw_bearer_t *bearer)
+        uint8_t type, pgw_bearer_t *bearer, uint8_t pti)
 {
     pgw_sess_t *sess = NULL;
     pgw_bearer_t *linked_bearer = NULL;
@@ -449,6 +455,11 @@ ogs_pkbuf_t *pgw_s5c_build_delete_bearer_request(
         /* Bearer EBI */
         req->eps_bearer_ids.presence = 1;
         req->eps_bearer_ids.u8 = bearer->ebi;
+    }
+
+    if (pti) {
+        req->procedure_transaction_id.presence = 1;
+        req->procedure_transaction_id.u8 = pti;
     }
 
     gtp_message.h.type = type;
