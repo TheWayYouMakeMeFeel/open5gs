@@ -755,10 +755,17 @@ ogs_gtp_xact_t *ogs_gtp_xact_find_by_xid(
         list = &gnode->local_list;
         break;
     case GTP_XACT_FINAL_STAGE:
-        if (xid & GTP_CMD_XACT_ID)
-            list = &gnode->remote_list;
-        else
+        if (xid & GTP_CMD_XACT_ID) {
+            if (type == OGS_GTP_MODIFY_BEARER_FAILURE_INDICATION_TYPE ||
+                type == OGS_GTP_DELETE_BEARER_FAILURE_INDICATION_TYPE ||
+                type == OGS_GTP_BEARER_RESOURCE_FAILURE_INDICATION_TYPE) {
+                list = &gnode->local_list;
+            } else {
+                list = &gnode->remote_list;
+            }
+        } else {
             list = &gnode->local_list;
+        }
         break;
     default:
         ogs_assert_if_reached();
