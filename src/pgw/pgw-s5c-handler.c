@@ -135,9 +135,16 @@ void pgw_s5c_handle_create_session_request(
 
     /* Set AMBR if available */
     if (req->aggregate_maximum_bit_rate.presence) {
+        /*
+         * Ch 8.7. Aggregate Maximum Bit Rate(AMBR) in TS 29.274 V15.9.0
+         *
+         * AMBR is defined in clause 9.9.4.2 of 3GPP TS 24.301 [23],
+         * but it shall be encoded as shown in Figure 8.7-1 as
+         * Unsigned32 binary integer values in kbps (1000 bits per second).
+         */
         ambr = req->aggregate_maximum_bit_rate.data;
-        sess->pdn.ambr.downlink = ntohl(ambr->downlink);
-        sess->pdn.ambr.uplink = ntohl(ambr->uplink);
+        sess->pdn.ambr.downlink = be32toh(ambr->downlink) * 1000;
+        sess->pdn.ambr.uplink = be32toh(ambr->uplink) * 1000;
     }
     
     /* Set User Location Information */

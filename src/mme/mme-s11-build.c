@@ -201,9 +201,16 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     req->maximum_apn_restriction.u8 = OGS_GTP_APN_NO_RESTRICTION;
 
     if (pdn->ambr.uplink || pdn->ambr.downlink) {
+        /*
+         * Ch 8.7. Aggregate Maximum Bit Rate(AMBR) in TS 29.274 V15.9.0
+         *
+         * AMBR is defined in clause 9.9.4.2 of 3GPP TS 24.301 [23],
+         * but it shall be encoded as shown in Figure 8.7-1 as
+         * Unsigned32 binary integer values in kbps (1000 bits per second).
+         */
         memset(&ambr, 0, sizeof(ogs_gtp_ambr_t));
-        ambr.uplink = htonl(pdn->ambr.uplink);
-        ambr.downlink = htonl(pdn->ambr.downlink);
+        ambr.uplink = htobe32(pdn->ambr.uplink / 1000);
+        ambr.downlink = htobe32(pdn->ambr.downlink / 1000);
         req->aggregate_maximum_bit_rate.presence = 1;
         req->aggregate_maximum_bit_rate.data = &ambr;
         req->aggregate_maximum_bit_rate.len = sizeof(ambr);
