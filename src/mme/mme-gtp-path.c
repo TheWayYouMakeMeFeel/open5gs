@@ -464,6 +464,7 @@ void mme_gtp_send_bearer_resource_command(mme_bearer_t *bearer,
 
     xact = ogs_gtp_xact_local_create(mme_ue->gnode, &h, pkbuf, timeout, mme_ue);
     ogs_expect_or_return(xact);
+    xact->xid |= OGS_GTP_CMD_XACT_ID;
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
