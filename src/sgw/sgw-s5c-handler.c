@@ -534,6 +534,8 @@ void sgw_s5c_handle_bearer_resource_failure_indication(ogs_gtp_xact_t *s5c_xact,
     ogs_gtp_xact_t *s11_xact = NULL;
     ogs_gtp_bearer_resource_failure_indication_t *ind = NULL;
 
+    sgw_ue_t *sgw_ue = NULL;
+
     ogs_assert(s5c_xact);
     s11_xact = s5c_xact->assoc_xact;
     ogs_assert(s11_xact);
@@ -558,7 +560,10 @@ void sgw_s5c_handle_bearer_resource_failure_indication(ogs_gtp_xact_t *s5c_xact,
         cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
     }
 
-    ogs_gtp_send_error_message(s11_xact, sess ? sess->pgw_s5c_teid : 0,
+    sgw_ue = sess->sgw_ue;
+    ogs_assert(sgw_ue);
+
+    ogs_gtp_send_error_message(s11_xact, sgw_ue ? sgw_ue->mme_s11_teid : 0,
             OGS_GTP_BEARER_RESOURCE_FAILURE_INDICATION_TYPE, cause_value);
 }
 

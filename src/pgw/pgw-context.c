@@ -1081,6 +1081,30 @@ pgw_bearer_t *pgw_bearer_find_by_name(pgw_sess_t *sess, char *name)
     return NULL;
 }
 
+pgw_bearer_t *pgw_bearer_find_by_qci(pgw_sess_t *sess, uint8_t qci)
+{
+    pgw_bearer_t *bearer = NULL;
+
+    ogs_assert(sess);
+
+    bearer = pgw_default_bearer_in_sess(sess);
+    if (!bearer) return NULL;
+
+    if (sess->pdn.qos.qci == qci) {
+        return bearer;
+    }
+
+    bearer = pgw_bearer_next(bearer);
+    while (bearer) {
+        if (bearer->qos.qci == qci) {
+            return bearer;
+        }
+        bearer = pgw_bearer_next(bearer);
+    }
+
+    return NULL;
+}
+
 pgw_bearer_t *pgw_bearer_find_by_qci_arp(pgw_sess_t *sess, 
                                 uint8_t qci,
                                 uint8_t priority_level,
