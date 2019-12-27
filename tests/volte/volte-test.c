@@ -274,7 +274,7 @@ static void volte_test1(abts_case *tc, void *data)
 
     /* Send Modify EPS bearer context accept */
     rv = tests1ap_build_bearer_resource_modification_request(&sendbuf,
-            1, 1, 6);
+            1, 1, 3, 0xf9e15c3e, 7, 6, 1, 44, 55, 22, 33);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);

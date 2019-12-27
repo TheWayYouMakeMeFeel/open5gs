@@ -2496,7 +2496,9 @@ static void build_bearer_resource_modification_request(ogs_pkbuf_t **pkbuf,
 
 int tests1ap_build_bearer_resource_modification_request(
         ogs_pkbuf_t **pkbuf,
-        uint32_t mme_ue_s1ap_id, uint32_t enb_ue_s1ap_id, uint8_t ebi)
+        uint32_t mme_ue_s1ap_id, uint32_t enb_ue_s1ap_id,
+        uint8_t pti, uint32_t mac, uint8_t seq, uint8_t ebi, uint8_t qci,
+        uint8_t ul_mbr, uint8_t dl_mbr, uint8_t ul_gbr, uint8_t dl_gbr)
 {
     int rv;
     ogs_pkbuf_t *emmbuf = NULL;
@@ -2530,7 +2532,7 @@ int tests1ap_build_bearer_resource_modification_request(
     ASN_SEQUENCE_ADD(&UplinkNASTransport->protocolIEs, ie);
 
     ie->id = S1AP_ProtocolIE_ID_id_MME_UE_S1AP_ID;
-    ie->criticality = S1AP_Criticality_ignore;
+    ie->criticality = S1AP_Criticality_reject;
     ie->value.present =
         S1AP_UplinkNASTransport_IEs__value_PR_MME_UE_S1AP_ID;
 
@@ -2540,7 +2542,7 @@ int tests1ap_build_bearer_resource_modification_request(
     ASN_SEQUENCE_ADD(&UplinkNASTransport->protocolIEs, ie);
 
     ie->id = S1AP_ProtocolIE_ID_id_eNB_UE_S1AP_ID;
-    ie->criticality = S1AP_Criticality_ignore;
+    ie->criticality = S1AP_Criticality_reject;
     ie->value.present =
         S1AP_UplinkNASTransport_IEs__value_PR_ENB_UE_S1AP_ID;
 
@@ -2556,7 +2558,7 @@ int tests1ap_build_bearer_resource_modification_request(
     NAS_PDU = &ie->value.choice.NAS_PDU;
 
     build_bearer_resource_modification_request(
-            &emmbuf, 3, 0xf9e15c3e, 7, 6, 1, 44, 55, 22, 33);
+            &emmbuf, pti, mac, seq, ebi, qci, ul_mbr, dl_mbr, ul_gbr, dl_gbr);
     ogs_assert(emmbuf);
     NAS_PDU->size = emmbuf->len;
     NAS_PDU->buf = CALLOC(NAS_PDU->size, sizeof(uint8_t));
