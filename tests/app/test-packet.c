@@ -2405,7 +2405,7 @@ int tests1ap_build_deactivate_bearer_accept(
     return OGS_OK;
 }
 
-int tests1ap_build_bearer_resource_command(
+int tests1ap_build_bearer_resource_allocation_request(
         ogs_pkbuf_t **pkbuf, int i)
 {
     const char *payload[TESTS1AP_MAX_MESSAGE] = { 
@@ -2436,6 +2436,141 @@ int tests1ap_build_bearer_resource_command(
     ogs_pkbuf_put_data(*pkbuf, 
         OGS_HEX(payload[i], strlen(payload[i]), hexbuf), len[i]);
 
+    return OGS_OK;
+}
+
+static void build_bearer_resource_modification_request(ogs_pkbuf_t **pkbuf,
+    uint8_t pti, uint32_t mac, uint8_t seq, uint8_t ebi, uint8_t qci,
+    uint8_t ul_mbr, uint8_t dl_mbr, uint8_t ul_gbr, uint8_t dl_gbr)
+{
+    ogs_pkbuf_t *emmbuf = NULL;
+
+    ogs_nas_message_t message;
+    ogs_nas_bearer_resource_modification_request_t
+        *req = &message.esm.bearer_resource_modification_request;
+    ogs_nas_traffic_flow_aggregate_description_t *tad =
+        &req->traffic_flow_aggregate;
+    ogs_nas_eps_quality_of_service_t *qos = &req->required_traffic_flow_qos;
+
+    ogs_gtp_tft_t tft;
+    ogs_tlv_octet_t octet;
+    int len;
+    char tft_buf[OGS_GTP_MAX_TRAFFIC_FLOW_TEMPLATE];
+
+    memset(&message, 0, sizeof(message));
+    message.esm.h.eps_bearer_identity = 0;
+    message.esm.h.protocol_discriminator = OGS_NAS_PROTOCOL_DISCRIMINATOR_ESM;
+    message.esm.h.procedure_transaction_identity = pti;
+    message.esm.h.message_type = OGS_NAS_BEARER_RESOURCE_MODIFICATION_REQUEST;
+
+    req->eps_bearer_identity_for_packet_filter.eps_bearer_identity = ebi;
+
+    memset(&tft, 0, sizeof tft);
+    tft.code = OGS_GTP_TFT_CODE_NO_TFT_OPERATION;
+    tad->length = ogs_gtp_build_tft(&octet,
+            &tft, tad->buffer, OGS_GTP_MAX_TRAFFIC_FLOW_TEMPLATE);
+
+    if (ul_mbr || dl_mbr || ul_gbr || dl_gbr) {
+        req->presencemask |= OGS_NAS_BEARER_RESOURCE_MODIFICATION_REQUEST_REQUIRED_TRAFFIC_FLOW_QOS_PRESENT;
+        qos->length = 5;
+        qos->qci = qci;
+        qos->ul_mbr = ul_mbr;
+        qos->dl_mbr = dl_mbr;
+        qos->ul_gbr = ul_gbr;
+        qos->dl_gbr = dl_gbr;
+    }
+
+    emmbuf = ogs_nas_plain_encode(&message);
+
+    message.h.security_header_type =
+       OGS_NAS_SECURITY_HEADER_INTEGRITY_PROTECTED;
+    message.h.protocol_discriminator = OGS_NAS_PROTOCOL_DISCRIMINATOR_EMM;
+    message.h.message_authentication_code = htobe32(mac);
+    message.h.sequence_number = seq;
+
+    ogs_assert(ogs_pkbuf_push(emmbuf, sizeof(ogs_nas_security_header_t)));
+    memcpy(emmbuf->data, &message.h, sizeof(ogs_nas_security_header_t));
+
+    *pkbuf = emmbuf;
+}
+
+int tests1ap_build_bearer_resource_modification_request(
+        ogs_pkbuf_t **pkbuf,
+        uint32_t mme_ue_s1ap_id, uint32_t enb_ue_s1ap_id, uint8_t ebi)
+{
+    int rv;
+    ogs_pkbuf_t *emmbuf = NULL;
+
+    S1AP_S1AP_PDU_t pdu;
+    S1AP_InitiatingMessage_t *initiatingMessage = NULL;
+    S1AP_UplinkNASTransport_t *UplinkNASTransport = NULL;
+
+    S1AP_UplinkNASTransport_IEs_t *ie = NULL;
+    S1AP_MME_UE_S1AP_ID_t *MME_UE_S1AP_ID = NULL;
+    S1AP_ENB_UE_S1AP_ID_t *ENB_UE_S1AP_ID = NULL;
+    S1AP_NAS_PDU_t *NAS_PDU = NULL;
+    S1AP_EUTRAN_CGI_t *EUTRAN_CGI = NULL;
+    S1AP_TAI_t *TAI = NULL;
+
+    memset(&pdu, 0, sizeof (S1AP_S1AP_PDU_t));
+    pdu.present = S1AP_S1AP_PDU_PR_initiatingMessage;
+    pdu.choice.initiatingMessage =
+        CALLOC(1, sizeof(S1AP_InitiatingMessage_t));
+
+    initiatingMessage = pdu.choice.initiatingMessage;
+    initiatingMessage->procedureCode =
+        S1AP_ProcedureCode_id_uplinkNASTransport;
+    initiatingMessage->criticality = S1AP_Criticality_ignore;
+    initiatingMessage->value.present =
+        S1AP_InitiatingMessage__value_PR_UplinkNASTransport;
+
+    UplinkNASTransport = &initiatingMessage->value.choice.UplinkNASTransport;
+
+    ie = CALLOC(1, sizeof(S1AP_UplinkNASTransport_IEs_t));
+    ASN_SEQUENCE_ADD(&UplinkNASTransport->protocolIEs, ie);
+
+    ie->id = S1AP_ProtocolIE_ID_id_MME_UE_S1AP_ID;
+    ie->criticality = S1AP_Criticality_ignore;
+    ie->value.present =
+        S1AP_UplinkNASTransport_IEs__value_PR_MME_UE_S1AP_ID;
+
+    MME_UE_S1AP_ID = &ie->value.choice.MME_UE_S1AP_ID;
+
+    ie = CALLOC(1, sizeof(S1AP_UplinkNASTransport_IEs_t));
+    ASN_SEQUENCE_ADD(&UplinkNASTransport->protocolIEs, ie);
+
+    ie->id = S1AP_ProtocolIE_ID_id_eNB_UE_S1AP_ID;
+    ie->criticality = S1AP_Criticality_ignore;
+    ie->value.present =
+        S1AP_UplinkNASTransport_IEs__value_PR_ENB_UE_S1AP_ID;
+
+    ENB_UE_S1AP_ID = &ie->value.choice.ENB_UE_S1AP_ID;
+
+    ie = CALLOC(1, sizeof(S1AP_UplinkNASTransport_IEs_t));
+    ASN_SEQUENCE_ADD(&UplinkNASTransport->protocolIEs, ie);
+
+    ie->id = S1AP_ProtocolIE_ID_id_NAS_PDU;
+    ie->criticality = S1AP_Criticality_reject;
+    ie->value.present = S1AP_UplinkNASTransport_IEs__value_PR_NAS_PDU;
+
+    NAS_PDU = &ie->value.choice.NAS_PDU;
+
+    build_bearer_resource_modification_request(
+            &emmbuf, 3, 0xf9e15c3e, 7, 6, 1, 44, 55, 22, 33);
+    ogs_assert(emmbuf);
+    NAS_PDU->size = emmbuf->len;
+    NAS_PDU->buf = CALLOC(NAS_PDU->size, sizeof(uint8_t));
+    memcpy(NAS_PDU->buf, emmbuf->data, NAS_PDU->size);
+    ogs_pkbuf_free(emmbuf);
+
+    *MME_UE_S1AP_ID = mme_ue_s1ap_id;
+    *ENB_UE_S1AP_ID = enb_ue_s1ap_id;
+
+    *pkbuf = ogs_s1ap_encode(&pdu);
+    if (*pkbuf == NULL) {
+        ogs_error("ogs_s1ap_encode() failed");
+        return OGS_ERROR;
+    }
     return OGS_OK;
 }
 

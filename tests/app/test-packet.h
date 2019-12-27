@@ -108,8 +108,11 @@ int tests1ap_build_modify_bearer_accept(
         ogs_pkbuf_t **pkbuf, int i);
 int tests1ap_build_deactivate_bearer_accept(
         ogs_pkbuf_t **pkbuf, int i);
-int tests1ap_build_bearer_resource_command(
+int tests1ap_build_bearer_resource_allocation_request(
         ogs_pkbuf_t **pkbuf, int i);
+int tests1ap_build_bearer_resource_modification_request(
+        ogs_pkbuf_t **pkbuf,
+        uint32_t mme_ue_s1ap_id, uint32_t enb_ue_s1ap_id, uint8_t ebi);
 int tests1ap_build_path_switch_request(
         ogs_pkbuf_t **pkbuf, int target, 
         uint32_t mme_ue_s1ap_id, uint32_t enb_ue_s1ap_id,
