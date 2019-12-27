@@ -150,8 +150,8 @@ int esm_handle_information_response(mme_sess_t *sess,
     return OGS_OK;
 }
 
-int esm_handle_bearer_resource_modification_request(mme_bearer_t *bearer,
-        ogs_nas_bearer_resource_modification_request_t *req)
+int esm_handle_bearer_resource_modification_request(
+        mme_bearer_t *bearer, ogs_nas_message_t *message)
 {
     mme_ue_t *mme_ue = NULL;
 
@@ -159,7 +159,7 @@ int esm_handle_bearer_resource_modification_request(mme_bearer_t *bearer,
     mme_ue = bearer->mme_ue;
     ogs_assert(mme_ue);
 
-    mme_gtp_send_bearer_resource_command(bearer, req);
+    mme_gtp_send_bearer_resource_command(bearer, message);
 
     return OGS_OK;
 }

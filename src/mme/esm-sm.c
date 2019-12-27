@@ -237,9 +237,7 @@ void esm_state_active(ogs_fsm_t *s, mme_event_t *e)
             ogs_debug("[ESM] Bearer resource modification request");
             ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",
                     mme_ue->imsi_bcd, sess->pti, bearer->ebi);
-            esm_handle_bearer_resource_modification_request(
-                    bearer, &message->esm.bearer_resource_modification_request);
-
+            esm_handle_bearer_resource_modification_request(bearer, message);
             break;
         default:
             ogs_error("Unknown message(type:%d)", 

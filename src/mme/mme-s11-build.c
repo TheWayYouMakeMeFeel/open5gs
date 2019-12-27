@@ -737,15 +737,16 @@ ogs_pkbuf_t *mme_s11_build_create_indirect_data_forwarding_tunnel_request(
 }
 
 ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
-        uint8_t type, mme_bearer_t *bearer,
-        ogs_nas_bearer_resource_modification_request_t *req)
+        uint8_t type, mme_bearer_t *bearer, ogs_nas_message_t *nas_message)
 {
     ogs_gtp_message_t gtp_message;
     ogs_gtp_bearer_resource_command_t *cmd =
         &gtp_message.bearer_resource_command;
+    ogs_nas_bearer_resource_allocation_request_t *allocation = NULL;
+    ogs_nas_bearer_resource_modification_request_t *modification = NULL;
 
-    ogs_nas_eps_quality_of_service_t *required_traffic_flow_qos = NULL;
-    ogs_nas_traffic_flow_aggregate_description_t *traffic_flow_aggregate = NULL;
+    ogs_nas_eps_quality_of_service_t *qos = NULL;
+    ogs_nas_traffic_flow_aggregate_description_t *tad = NULL;
 
     ogs_gtp_flow_qos_t flow_qos;
     char flow_qos_buf[GTP_FLOW_QOS_LEN];
@@ -760,64 +761,71 @@ ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
     mme_ue = sess->mme_ue;
     ogs_assert(mme_ue);
 
-    required_traffic_flow_qos = &req->required_traffic_flow_qos;
-    traffic_flow_aggregate = &req->traffic_flow_aggregate;
+    ogs_assert(nas_message);
+        switch (nas_message->esm.h.message_type) {
+        case OGS_NAS_BEARER_RESOURCE_ALLOCATION_REQUEST:
+            allocation = &nas_message->esm.bearer_resource_allocation_request;
+            qos = &allocation->required_traffic_flow_qos;
+            tad = &allocation->traffic_flow_aggregate;
+            break;
+        case OGS_NAS_BEARER_RESOURCE_MODIFICATION_REQUEST:
+            modification = &nas_message->esm.bearer_resource_modification_request;
+            qos = &modification->required_traffic_flow_qos;
+            tad = &modification->traffic_flow_aggregate;
+            break;
+        default:
+            ogs_error("Invalid NAS ESM Type[%d]",
+                    nas_message->esm.h.message_type);
+            return NULL;
+        }
 
-    linked_bearer = mme_linked_bearer(bearer);
-    ogs_assert(linked_bearer);
+        linked_bearer = mme_linked_bearer(bearer);
+        ogs_assert(linked_bearer);
 
-    ogs_debug("[MME] Bearer Resource Command");
-    ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
-            mme_ue->mme_s11_teid, mme_ue->sgw_s11_teid);
+        ogs_debug("[MME] Bearer Resource Command");
+        ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
+                mme_ue->mme_s11_teid, mme_ue->sgw_s11_teid);
 
-    memset(&gtp_message, 0, sizeof(ogs_gtp_message_t));
+        memset(&gtp_message, 0, sizeof(ogs_gtp_message_t));
 
-    /* Linked Bearer Context : EBI */
-    cmd->linked_eps_bearer_id.presence = 1;
-    cmd->linked_eps_bearer_id.u8 = bearer->ebi;
+        /* Linked Bearer Context : EBI */
+        cmd->linked_eps_bearer_id.presence = 1;
+        cmd->linked_eps_bearer_id.u8 = bearer->ebi;
 
-    /* Procedure Transaction ID(PTI) */
-    cmd->procedure_transaction_id.presence = 1;
-    cmd->procedure_transaction_id.u8 = sess->pti;
+        /* Procedure Transaction ID(PTI) */
+        cmd->procedure_transaction_id.presence = 1;
+        cmd->procedure_transaction_id.u8 = sess->pti;
 
-    /* Flow Quality of Service(QoS) */
-    memset(&flow_qos, 0, sizeof(flow_qos));
-    flow_qos.qci = required_traffic_flow_qos->qci;
-    flow_qos.ul_mbr = required_traffic_flow_qos->ul_mbr == 0 ?
-            bearer->qos.mbr.uplink / 1024 :
-            ogs_gtp_qos_to_kbps(
-                required_traffic_flow_qos->ul_mbr,
-                required_traffic_flow_qos->ul_mbr_extended,
-                required_traffic_flow_qos->ul_mbr_extended2);
-    flow_qos.dl_mbr = required_traffic_flow_qos->dl_mbr == 0 ?
-            bearer->qos.mbr.downlink / 1024 :
-            ogs_gtp_qos_to_kbps(
-                required_traffic_flow_qos->dl_mbr,
-                required_traffic_flow_qos->dl_mbr_extended,
-                required_traffic_flow_qos->dl_mbr_extended2);
-    flow_qos.ul_gbr = required_traffic_flow_qos->ul_gbr == 0 ?
-            bearer->qos.gbr.uplink / 1024 :
-            ogs_gtp_qos_to_kbps(
-                required_traffic_flow_qos->ul_gbr,
-                required_traffic_flow_qos->ul_gbr_extended,
-                required_traffic_flow_qos->ul_gbr_extended2);
-    flow_qos.dl_gbr = required_traffic_flow_qos->dl_gbr == 0 ?
-            bearer->qos.gbr.downlink / 1024 :
-            ogs_gtp_qos_to_kbps(
-                required_traffic_flow_qos->dl_gbr,
-                required_traffic_flow_qos->dl_gbr_extended,
-                required_traffic_flow_qos->dl_gbr_extended2);
+        /* Flow Quality of Service(QoS) */
+        memset(&flow_qos, 0, sizeof(flow_qos));
+        flow_qos.qci = qos->qci;
+        flow_qos.ul_mbr = qos->ul_mbr == 0 ?
+                bearer->qos.mbr.uplink / 1024 :
+                ogs_gtp_qos_to_kbps(
+                    qos->ul_mbr, qos->ul_mbr_extended, qos->ul_mbr_extended2);
+        flow_qos.dl_mbr = qos->dl_mbr == 0 ?
+                bearer->qos.mbr.downlink / 1024 :
+                ogs_gtp_qos_to_kbps(
+                    qos->dl_mbr, qos->dl_mbr_extended, qos->dl_mbr_extended2);
+        flow_qos.ul_gbr = qos->ul_gbr == 0 ?
+                bearer->qos.gbr.uplink / 1024 :
+                ogs_gtp_qos_to_kbps(
+                    qos->ul_gbr, qos->ul_gbr_extended, qos->ul_gbr_extended2);
+        flow_qos.dl_gbr = qos->dl_gbr == 0 ?
+                bearer->qos.gbr.downlink / 1024 :
+                ogs_gtp_qos_to_kbps(
+                    qos->dl_gbr, qos->dl_gbr_extended, qos->dl_gbr_extended2);
 
-    ogs_gtp_build_flow_qos(
-            &cmd->flow_quality_of_service,
-            &flow_qos, flow_qos_buf, GTP_FLOW_QOS_LEN);
-    cmd->flow_quality_of_service.presence = 1;
+        ogs_gtp_build_flow_qos(
+                &cmd->flow_quality_of_service,
+                &flow_qos, flow_qos_buf, GTP_FLOW_QOS_LEN);
+        cmd->flow_quality_of_service.presence = 1;
 
-    /* Traffic Aggregate Description(TAD) */
-    cmd->traffic_aggregate_description.presence = 1;
-    cmd->traffic_aggregate_description.data = traffic_flow_aggregate->buffer;
-    cmd->traffic_aggregate_description.len = traffic_flow_aggregate->length;
+        /* Traffic Aggregate Description(TAD) */
+        cmd->traffic_aggregate_description.presence = 1;
+        cmd->traffic_aggregate_description.data = tad->buffer;
+        cmd->traffic_aggregate_description.len = tad->length;
 
-    gtp_message.h.type = type;
-    return ogs_gtp_build_msg(&gtp_message);
-}
+        gtp_message.h.type = type;
+        return ogs_gtp_build_msg(&gtp_message);
+    }
