@@ -328,6 +328,7 @@ void pgw_s5c_handle_bearer_resource_command(
     ogs_gtp_header_t h;
     ogs_pkbuf_t *pkbuf = NULL;
 
+    ogs_gtp_flow_qos_t flow_qos;
     pgw_bearer_t *bearer = NULL;
 
     ogs_assert(xact);
@@ -360,6 +361,18 @@ void pgw_s5c_handle_bearer_resource_command(
     if (cmd->flow_quality_of_service.presence == 0) {
         ogs_error("No Flow Quality of Service(QOS)");
         cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
+    } else {
+        uint16_t decoded = 0;
+        decoded = ogs_gtp_parse_flow_qos(&flow_qos,
+            &cmd->flow_quality_of_service);
+        ogs_assert(cmd->flow_quality_of_service.len == decoded);
+
+        bearer = pgw_bearer_find_by_qci(sess, flow_qos.qci);
+        if (!bearer) {
+            ogs_error("No Bearer for QCI[%d]",
+                    cmd->linked_eps_bearer_id.u8);
+            cause_value = OGS_GTP_CAUSE_CONTEXT_NOT_FOUND;
+        }
     }
     if (cmd->traffic_aggregate_description.presence == 0) {
         ogs_error("No Traffic aggregate description(TAD)");
