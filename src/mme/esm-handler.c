@@ -150,8 +150,8 @@ int esm_handle_information_response(mme_sess_t *sess,
     return OGS_OK;
 }
 
-int esm_handle_bearer_resource_allocation_request(mme_bearer_t *bearer,
-        ogs_nas_bearer_resource_allocation_request_t *req)
+int esm_handle_bearer_resource_modification_request(mme_bearer_t *bearer,
+        ogs_nas_bearer_resource_modification_request_t *req)
 {
     mme_ue_t *mme_ue = NULL;
 

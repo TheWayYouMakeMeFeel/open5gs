@@ -43,7 +43,7 @@ ogs_pkbuf_t *mme_s11_build_create_indirect_data_forwarding_tunnel_request(
 
 ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
         uint8_t type, mme_bearer_t *bearer,
-        ogs_nas_bearer_resource_allocation_request_t *req);
+        ogs_nas_bearer_resource_modification_request_t *req);
 
 #ifdef __cplusplus
 }

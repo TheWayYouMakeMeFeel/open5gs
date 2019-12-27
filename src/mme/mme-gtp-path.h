@@ -45,7 +45,7 @@ void mme_gtp_send_delete_indirect_data_forwarding_tunnel_request(
         mme_ue_t *mme_ue);
 
 void mme_gtp_send_bearer_resource_command(mme_bearer_t *bearer,
-        ogs_nas_bearer_resource_allocation_request_t *req);
+        ogs_nas_bearer_resource_modification_request_t *req);
 
 #ifdef __cplusplus
 }
