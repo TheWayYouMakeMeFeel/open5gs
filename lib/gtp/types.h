@@ -302,6 +302,7 @@ ED3(uint8_t code:3;,
     } pf[OGS_MAX_NUM_OF_PACKET_FILTER];
 } ogs_gtp_tft_t;
 
+int16_t ogs_gtp_parse_tft(ogs_gtp_tft_t *tft, ogs_tlv_octet_t *octet);
 int16_t ogs_gtp_build_tft(
     ogs_tlv_octet_t *octet, ogs_gtp_tft_t *tft, void *data, int data_len);
 

@@ -329,8 +329,12 @@ void pgw_s5c_handle_bearer_resource_command(
     ogs_pkbuf_t *pkbuf = NULL;
 
     pgw_bearer_t *bearer = NULL;
-    int qos_presence = 0;
+
+    int16_t decoded;
+    ogs_gtp_tft_t tft;
     int tft_presence = 0;
+
+    int qos_presence = 0;
 
     ogs_assert(xact);
     ogs_assert(sess);
@@ -372,8 +376,14 @@ void pgw_s5c_handle_bearer_resource_command(
 
     ogs_assert(bearer);
 
+    decoded = ogs_gtp_parse_tft(&tft, &cmd->traffic_aggregate_description);
+    ogs_assert(cmd->traffic_aggregate_description.len == decoded);
+
+    if (tft.code == OGS_GTP_TFT_CODE_REPLACE_PACKET_FILTERS_IN_EXISTING) {
+        tft_presence = 1;
+    }
+
     if (cmd->flow_quality_of_service.presence) {
-        int16_t decoded;
         ogs_gtp_flow_qos_t flow_qos;
 
         decoded = ogs_gtp_parse_flow_qos(
@@ -401,8 +411,8 @@ void pgw_s5c_handle_bearer_resource_command(
     h.teid = sess->sgw_s5c_teid;
 
     pkbuf = pgw_s5c_build_update_bearer_request(
-            h.type, bearer,
-            cmd->procedure_transaction_id.u8, qos_presence, tft_presence);
+            h.type, bearer, cmd->procedure_transaction_id.u8,
+            tft_presence, &tft, qos_presence);
     ogs_expect_or_return(pkbuf);
 
     rv = ogs_gtp_xact_update_tx(xact, &h, pkbuf);

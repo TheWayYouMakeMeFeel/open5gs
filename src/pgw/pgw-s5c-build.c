@@ -358,8 +358,8 @@ ogs_pkbuf_t *pgw_s5c_build_create_bearer_request(
 }
 
 ogs_pkbuf_t *pgw_s5c_build_update_bearer_request(
-        uint8_t type, pgw_bearer_t *bearer,
-        uint8_t pti, int qos_presence, int tft_presence)
+        uint8_t type, pgw_bearer_t *bearer, uint8_t pti,
+        int tft_presence, ogs_gtp_tft_t *new_tft, int qos_presence)
 {
     pgw_sess_t *sess = NULL;
 
@@ -430,10 +430,16 @@ ogs_pkbuf_t *pgw_s5c_build_update_bearer_request(
 
     /* Bearer TFT */
     if (tft_presence == 1) {
-        encode_traffic_flow_template(&tft, bearer);
+        if (new_tft) {
+            ogs_gtp_build_tft(&req->bearer_contexts.tft,
+                    new_tft, tft_buf, OGS_GTP_MAX_TRAFFIC_FLOW_TEMPLATE);
+        } else {
+            encode_traffic_flow_template(&tft, bearer);
+            ogs_gtp_build_tft(&req->bearer_contexts.tft,
+                    &tft, tft_buf, OGS_GTP_MAX_TRAFFIC_FLOW_TEMPLATE);
+        }
+
         req->bearer_contexts.tft.presence = 1;
-        ogs_gtp_build_tft(&req->bearer_contexts.tft,
-                &tft, tft_buf, OGS_GTP_MAX_TRAFFIC_FLOW_TEMPLATE);
     }
 
     gtp_message.h.type = type;

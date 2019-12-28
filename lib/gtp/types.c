@@ -281,6 +281,120 @@ int16_t ogs_gtp_build_flow_qos(ogs_tlv_octet_t *octet,
 
 /* 8.19 EPS Bearer Level Traffic Flow Template (Bearer TFT) 
  * See subclause 10.5.6.12 in 3GPP TS 24.008 [13]. */
+int16_t ogs_gtp_parse_tft(ogs_gtp_tft_t *tft, ogs_tlv_octet_t *octet)
+{
+    int16_t size = 0;
+    int i, j, len = 0;
+
+    ogs_assert(tft);
+    ogs_assert(octet);
+
+    memset(tft, 0, sizeof(ogs_gtp_tft_t));
+
+    memcpy(&tft->flags, (unsigned char *)octet->data+size, sizeof(tft->flags));
+    size++;
+
+    for (i = 0; i < tft->num_of_packet_filter; i++) {
+        memcpy(&tft->pf[i].flags, (unsigned char *)octet->data+size,
+                sizeof(tft->pf[i].flags));
+        size += sizeof(tft->pf[i].flags);
+
+        memcpy(&tft->pf[i].precedence, (unsigned char *)octet->data+size,
+                sizeof(tft->pf[i].precedence));
+        size += sizeof(tft->pf[i].precedence);
+
+        memcpy(&tft->pf[i].length, (unsigned char *)octet->data+size,
+                sizeof(tft->pf[i].length));
+        size += sizeof(tft->pf[i].length);
+
+        j = 0; len = 0;
+        while(len < tft->pf[i].length) {
+            memcpy(&tft->pf[i].component[j].type,
+                    (unsigned char *)octet->data+size+len,
+                    sizeof(tft->pf[i].component[j].type));
+            len += sizeof(tft->pf[i].component[j].type);
+            switch(tft->pf[i].component[j].type) {
+            case GTP_PACKET_FILTER_PROTOCOL_IDENTIFIER_NEXT_HEADER_TYPE:
+                memcpy(&tft->pf[i].component[j].proto,
+                        (unsigned char *)octet->data+size+len,
+                        sizeof(tft->pf[i].component[j].proto));
+                len += sizeof(tft->pf[i].component[j].proto);
+                break;
+            case GTP_PACKET_FILTER_IPV4_REMOTE_ADDRESS_TYPE:
+            case GTP_PACKET_FILTER_IPV4_LOCAL_ADDRESS_TYPE:
+                memcpy(&tft->pf[i].component[j].ipv4.addr,
+                    (unsigned char *)octet->data+size+len,
+                    sizeof(tft->pf[i].component[j].ipv4.addr));
+                len += sizeof(tft->pf[i].component[j].ipv4.addr);
+
+                memcpy(&tft->pf[i].component[j].ipv4.mask,
+                    (unsigned char *)octet->data+size+len,
+                    sizeof(tft->pf[i].component[j].ipv4.mask));
+                len += sizeof(tft->pf[i].component[j].ipv4.mask);
+                break;
+            case GTP_PACKET_FILTER_IPV6_LOCAL_ADDRESS_PREFIX_LENGTH_TYPE:
+            case GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_PREFIX_LENGTH_TYPE:
+                memcpy(&tft->pf[i].component[j].ipv6.addr,
+                    (unsigned char *)octet->data+size+len,
+                    sizeof(tft->pf[i].component[j].ipv6.addr));
+                len += sizeof(tft->pf[i].component[j].ipv6.addr);
+
+                memcpy(&tft->pf[i].component[j].ipv6.prefixlen,
+                    (unsigned char *)octet->data+size+len,
+                    sizeof(tft->pf[i].component[j].ipv6.prefixlen));
+                len += sizeof(tft->pf[i].component[j].ipv6.prefixlen);
+                break;
+            case GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_TYPE:
+                memcpy(&tft->pf[i].component[j].ipv6_mask.addr,
+                    (unsigned char *)octet->data+size+len,
+                    sizeof(tft->pf[i].component[j].ipv6_mask.addr));
+                len += sizeof(tft->pf[i].component[j].ipv6_mask.addr);
+
+                memcpy(&tft->pf[i].component[j].ipv6_mask.mask,
+                    (unsigned char *)octet->data+size+len,
+                    sizeof(tft->pf[i].component[j].ipv6_mask.mask));
+                len += sizeof(tft->pf[i].component[j].ipv6_mask.mask);
+                break;
+            case GTP_PACKET_FILTER_SINGLE_LOCAL_PORT_TYPE:
+            case GTP_PACKET_FILTER_SINGLE_REMOTE_PORT_TYPE:
+                memcpy(&tft->pf[i].component[j].port.low,
+                    (unsigned char *)octet->data+size+len,
+                    sizeof(tft->pf[i].component[j].port.low));
+                tft->pf[i].component[j].port.low =
+                    htobe16(tft->pf[i].component[j].port.low);
+                len += sizeof(tft->pf[i].component[j].port.low);
+                break;
+            case GTP_PACKET_FILTER_LOCAL_PORT_RANGE_TYPE:
+            case GTP_PACKET_FILTER_REMOTE_PORT_RANGE_TYPE:
+                memcpy(&tft->pf[i].component[j].port.low,
+                    (unsigned char *)octet->data+size+len,
+                    sizeof(tft->pf[i].component[j].port.low));
+                tft->pf[i].component[j].port.low =
+                    htobe16(tft->pf[i].component[j].port.low);
+                len += sizeof(tft->pf[i].component[j].port.low);
+
+                memcpy(&tft->pf[i].component[j].port.high,
+                    (unsigned char *)octet->data+size+len,
+                    sizeof(tft->pf[i].component[j].port.high));
+                tft->pf[i].component[j].port.high =
+                    htobe16(tft->pf[i].component[j].port.high);
+                len += sizeof(tft->pf[i].component[j].port.high);
+                break;
+            default:
+                ogs_error("Unknown Packet Filter Type(%d)",
+                        tft->pf[i].component[j].type);
+                return -1;
+            }
+            j++;
+        }
+        tft->pf[i].num_of_component = j;
+        size += len;
+    }
+
+    ogs_assert(size == octet->len);
+
+    return size;
+}
 int16_t ogs_gtp_build_tft(
     ogs_tlv_octet_t *octet, ogs_gtp_tft_t *tft, void *data, int data_len)
 {
@@ -297,7 +411,8 @@ int16_t ogs_gtp_build_tft(
     memcpy(&target, tft, sizeof(ogs_gtp_tft_t));
 
     ogs_assert(size + sizeof(target.flags) <= data_len);
-    memcpy((unsigned char *)octet->data + size, &target.flags, sizeof(target.flags));
+    memcpy((unsigned char *)octet->data + size, &target.flags,
+            sizeof(target.flags));
     size += sizeof(target.flags);
 
     for (i = 0; i < target.num_of_packet_filter; i++) {
@@ -323,110 +438,106 @@ int16_t ogs_gtp_build_tft(
                     &target.pf[i].component[j].type,
                     sizeof(target.pf[i].component[j].type));
             size += sizeof(target.pf[i].component[j].type);
-            switch(target.pf[i].component[j].type)
-            {
-                case GTP_PACKET_FILTER_PROTOCOL_IDENTIFIER_NEXT_HEADER_TYPE:
-                {
-                    ogs_assert(size +
-                        sizeof(target.pf[i].component[j].proto) <= data_len);
-                    memcpy((unsigned char *)octet->data + size,
-                            &target.pf[i].component[j].proto,
-                            sizeof(target.pf[i].component[j].proto));
-                    size += sizeof(target.pf[i].component[j].proto);
-                    break;
-                }
-                case GTP_PACKET_FILTER_IPV4_REMOTE_ADDRESS_TYPE:
-                case GTP_PACKET_FILTER_IPV4_LOCAL_ADDRESS_TYPE:
-                    ogs_assert(size +
-                        sizeof(target.pf[i].component[j].ipv4.addr)
-                            <= data_len);
-                    memcpy((unsigned char *)octet->data + size,
-                        &target.pf[i].component[j].ipv4.addr,
-                        sizeof(target.pf[i].component[j].ipv4.addr));
-                    size += sizeof(target.pf[i].component[j].ipv4.addr);
+            switch(target.pf[i].component[j].type) {
+            case GTP_PACKET_FILTER_PROTOCOL_IDENTIFIER_NEXT_HEADER_TYPE:
+                ogs_assert(size +
+                    sizeof(target.pf[i].component[j].proto) <= data_len);
+                memcpy((unsigned char *)octet->data + size,
+                        &target.pf[i].component[j].proto,
+                        sizeof(target.pf[i].component[j].proto));
+                size += sizeof(target.pf[i].component[j].proto);
+                break;
+            case GTP_PACKET_FILTER_IPV4_REMOTE_ADDRESS_TYPE:
+            case GTP_PACKET_FILTER_IPV4_LOCAL_ADDRESS_TYPE:
+                ogs_assert(size +
+                    sizeof(target.pf[i].component[j].ipv4.addr)
+                        <= data_len);
+                memcpy((unsigned char *)octet->data + size,
+                    &target.pf[i].component[j].ipv4.addr,
+                    sizeof(target.pf[i].component[j].ipv4.addr));
+                size += sizeof(target.pf[i].component[j].ipv4.addr);
 
-                    ogs_assert(size +
-                        sizeof(target.pf[i].component[j].ipv4.mask)
-                            <= data_len);
-                    memcpy((unsigned char *)octet->data + size,
-                            &target.pf[i].component[j].ipv4.mask,
-                            sizeof(target.pf[i].component[j].ipv4.mask));
-                    size += sizeof(target.pf[i].component[j].ipv4.mask);
-                    break;
-                case GTP_PACKET_FILTER_IPV6_LOCAL_ADDRESS_PREFIX_LENGTH_TYPE:
-                case GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_PREFIX_LENGTH_TYPE:
-                    ogs_assert(size +
-                        sizeof(target.pf[i].component[j].ipv6.addr)
-                            <= data_len);
-                    memcpy((unsigned char *)octet->data + size,
-                            &target.pf[i].component[j].ipv6.addr,
-                            sizeof(target.pf[i].component[j].ipv6.addr));
-                    size += sizeof(target.pf[i].component[j].ipv6.addr);
+                ogs_assert(size +
+                    sizeof(target.pf[i].component[j].ipv4.mask)
+                        <= data_len);
+                memcpy((unsigned char *)octet->data + size,
+                        &target.pf[i].component[j].ipv4.mask,
+                        sizeof(target.pf[i].component[j].ipv4.mask));
+                size += sizeof(target.pf[i].component[j].ipv4.mask);
+                break;
+            case GTP_PACKET_FILTER_IPV6_LOCAL_ADDRESS_PREFIX_LENGTH_TYPE:
+            case GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_PREFIX_LENGTH_TYPE:
+                ogs_assert(size +
+                    sizeof(target.pf[i].component[j].ipv6.addr)
+                        <= data_len);
+                memcpy((unsigned char *)octet->data + size,
+                        &target.pf[i].component[j].ipv6.addr,
+                        sizeof(target.pf[i].component[j].ipv6.addr));
+                size += sizeof(target.pf[i].component[j].ipv6.addr);
 
-                    ogs_assert(size +
-                        sizeof(target.pf[i].component[j].ipv6.prefixlen)
-                            <= data_len);
-                    memcpy((unsigned char *)octet->data + size,
-                        &target.pf[i].component[j].ipv6.prefixlen,
-                        sizeof(target.pf[i].component[j].ipv6.prefixlen));
-                    size += sizeof(target.pf[i].component[j].ipv6.prefixlen);
-                    break;
-                case GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_TYPE:
-                    ogs_assert(size +
-                        sizeof(target.pf[i].component[j].ipv6_mask.addr)
-                            <= data_len);
-                    memcpy((unsigned char *)octet->data + size,
-                            &target.pf[i].component[j].ipv6_mask.addr,
-                            sizeof(target.pf[i].component[j].ipv6_mask.addr));
-                    size += sizeof(target.pf[i].component[j].ipv6_mask.addr);
+                ogs_assert(size +
+                    sizeof(target.pf[i].component[j].ipv6.prefixlen)
+                        <= data_len);
+                memcpy((unsigned char *)octet->data + size,
+                    &target.pf[i].component[j].ipv6.prefixlen,
+                    sizeof(target.pf[i].component[j].ipv6.prefixlen));
+                size += sizeof(target.pf[i].component[j].ipv6.prefixlen);
+                break;
+            case GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_TYPE:
+                ogs_assert(size +
+                    sizeof(target.pf[i].component[j].ipv6_mask.addr)
+                        <= data_len);
+                memcpy((unsigned char *)octet->data + size,
+                        &target.pf[i].component[j].ipv6_mask.addr,
+                        sizeof(target.pf[i].component[j].ipv6_mask.addr));
+                size += sizeof(target.pf[i].component[j].ipv6_mask.addr);
 
-                    ogs_assert(size +
-                        sizeof(target.pf[i].component[j].ipv6_mask.mask)
-                            <= data_len);
-                    memcpy((unsigned char *)octet->data + size,
-                            &target.pf[i].component[j].ipv6_mask.mask,
-                            sizeof(target.pf[i].component[j].ipv6_mask.mask));
-                    size += sizeof(target.pf[i].component[j].ipv6_mask.mask);
-                    break;
-                case GTP_PACKET_FILTER_SINGLE_LOCAL_PORT_TYPE:
-                case GTP_PACKET_FILTER_SINGLE_REMOTE_PORT_TYPE:
-                    ogs_assert(size +
-                        sizeof(target.pf[i].component[j].port.low)
-                            <= data_len);
-                    target.pf[i].component[j].port.low = 
-                        htons(target.pf[i].component[j].port.low);
-                    memcpy((unsigned char *)octet->data + size,
+                ogs_assert(size +
+                    sizeof(target.pf[i].component[j].ipv6_mask.mask)
+                        <= data_len);
+                memcpy((unsigned char *)octet->data + size,
+                        &target.pf[i].component[j].ipv6_mask.mask,
+                        sizeof(target.pf[i].component[j].ipv6_mask.mask));
+                size += sizeof(target.pf[i].component[j].ipv6_mask.mask);
+                break;
+            case GTP_PACKET_FILTER_SINGLE_LOCAL_PORT_TYPE:
+            case GTP_PACKET_FILTER_SINGLE_REMOTE_PORT_TYPE:
+                ogs_assert(size +
+                    sizeof(target.pf[i].component[j].port.low)
+                        <= data_len);
+                target.pf[i].component[j].port.low =
+                    htobe16(target.pf[i].component[j].port.low);
+                memcpy((unsigned char *)octet->data + size,
+                    &target.pf[i].component[j].port.low,
+                    sizeof(target.pf[i].component[j].port.low));
+                size += sizeof(target.pf[i].component[j].port.low);
+                break;
+            case GTP_PACKET_FILTER_LOCAL_PORT_RANGE_TYPE:
+            case GTP_PACKET_FILTER_REMOTE_PORT_RANGE_TYPE:
+                ogs_assert(size +
+                    sizeof(target.pf[i].component[j].port.low)
+                        <= data_len);
+                target.pf[i].component[j].port.low =
+                    htobe16(target.pf[i].component[j].port.low);
+                memcpy((unsigned char *)octet->data + size,
                         &target.pf[i].component[j].port.low,
                         sizeof(target.pf[i].component[j].port.low));
-                    size += sizeof(target.pf[i].component[j].port.low);
-                    break;
-                    
-                case GTP_PACKET_FILTER_LOCAL_PORT_RANGE_TYPE:
-                case GTP_PACKET_FILTER_REMOTE_PORT_RANGE_TYPE:
-                    ogs_assert(size +
-                        sizeof(target.pf[i].component[j].port.low)
-                            <= data_len);
-                    target.pf[i].component[j].port.low = 
-                        htons(target.pf[i].component[j].port.low);
-                    memcpy((unsigned char *)octet->data + size,
-                            &target.pf[i].component[j].port.low,
-                            sizeof(target.pf[i].component[j].port.low));
-                    size += sizeof(target.pf[i].component[j].port.low);
+                size += sizeof(target.pf[i].component[j].port.low);
 
-                    ogs_assert(size +
-                        sizeof(target.pf[i].component[j].port.high)
-                            <= data_len);
-                    target.pf[i].component[j].port.high = 
-                        htons(target.pf[i].component[j].port.high);
-                    memcpy((unsigned char *)octet->data + size,
-                        &target.pf[i].component[j].port.high,
-                        sizeof(target.pf[i].component[j].port.high));
-                    size += sizeof(target.pf[i].component[j].port.high);
-                    break;
-                default:
-                    ogs_error("Unknown Packet Filter Type(%d)", 
-                            target.pf[i].component[j].type);
-                    return -1;
+                ogs_assert(size +
+                    sizeof(target.pf[i].component[j].port.high)
+                        <= data_len);
+                target.pf[i].component[j].port.high =
+                    htobe16(target.pf[i].component[j].port.high);
+                memcpy((unsigned char *)octet->data + size,
+                    &target.pf[i].component[j].port.high,
+                    sizeof(target.pf[i].component[j].port.high));
+                size += sizeof(target.pf[i].component[j].port.high);
+                break;
+            default:
+                ogs_error("Unknown Packet Filter Type(%d)",
+                        target.pf[i].component[j].type);
+                return -1;
             }
         }
     }
@@ -456,50 +567,50 @@ int16_t ogs_gtp_parse_uli(ogs_gtp_uli_t *uli, ogs_tlv_octet_t *octet)
         ogs_assert(size + sizeof(uli->cgi) <= octet->len);
         memcpy(&uli->cgi,
                 (unsigned char *)octet->data + size, sizeof(uli->cgi));
-        uli->cgi.lac = ntohs(uli->cgi.lac);
-        uli->cgi.ci = ntohs(uli->cgi.ci);
+        uli->cgi.lac = be16toh(uli->cgi.lac);
+        uli->cgi.ci = be16toh(uli->cgi.ci);
         size += sizeof(uli->cgi);
     }
     if (uli->flags.sai) {
         ogs_assert(size + sizeof(uli->sai) <= octet->len);
         memcpy(&uli->sai,
                 (unsigned char *)octet->data + size, sizeof(uli->sai));
-        uli->sai.lac = ntohs(uli->sai.lac);
-        uli->sai.sac = ntohs(uli->sai.sac);
+        uli->sai.lac = be16toh(uli->sai.lac);
+        uli->sai.sac = be16toh(uli->sai.sac);
         size += sizeof(uli->sai);
     }
     if (uli->flags.rai) {
         ogs_assert(size + sizeof(uli->rai) <= octet->len);
         memcpy(&uli->rai,
                 (unsigned char *)octet->data + size, sizeof(uli->rai));
-        uli->rai.lac = ntohs(uli->rai.lac);
-        uli->rai.rac = ntohs(uli->rai.rac);
+        uli->rai.lac = be16toh(uli->rai.lac);
+        uli->rai.rac = be16toh(uli->rai.rac);
         size += sizeof(uli->rai);
     }
     if (uli->flags.tai) {
         ogs_assert(size + sizeof(uli->tai) <= octet->len);
         memcpy(&uli->tai,
                 (unsigned char *)octet->data + size, sizeof(uli->tai));
-        uli->tai.tac = ntohs(uli->tai.tac);
+        uli->tai.tac = be16toh(uli->tai.tac);
         size += sizeof(uli->tai);
     }
     if (uli->flags.e_cgi) {
         ogs_assert(size + sizeof(uli->e_cgi) <= octet->len);
         memcpy(&uli->e_cgi,
                 (unsigned char *)octet->data + size, sizeof(uli->e_cgi));
-        uli->e_cgi.cell_id = ntohl(uli->e_cgi.cell_id);
+        uli->e_cgi.cell_id = be32toh(uli->e_cgi.cell_id);
         size += sizeof(uli->e_cgi);
     }
     if (uli->flags.lai) {
         ogs_assert(size + sizeof(uli->lai) <= octet->len);
         memcpy(&uli->lai,
                 (unsigned char *)octet->data + size, sizeof(uli->lai));
-        uli->lai.lac = ntohs(uli->lai.lac);
+        uli->lai.lac = be16toh(uli->lai.lac);
         size += sizeof(uli->lai);
     }
 
     ogs_assert(size == octet->len);
-    
+
     return size;
 }
 int16_t ogs_gtp_build_uli(
@@ -523,45 +634,45 @@ int16_t ogs_gtp_build_uli(
 
     if (target.flags.cgi) {
         ogs_assert(size + sizeof(target.cgi) <= data_len);
-        target.cgi.lac = htons(target.cgi.lac);
-        target.cgi.ci = htons(target.cgi.ci);
+        target.cgi.lac = htobe16(target.cgi.lac);
+        target.cgi.ci = htobe16(target.cgi.ci);
         memcpy((unsigned char *)octet->data + size,
                 &target.cgi, sizeof(target.cgi));
         size += sizeof(target.cgi);
     }
     if (target.flags.sai) {
         ogs_assert(size + sizeof(target.sai) <= data_len);
-        target.sai.lac = htons(target.sai.lac);
-        target.sai.sac = htons(target.sai.sac);
+        target.sai.lac = htobe16(target.sai.lac);
+        target.sai.sac = htobe16(target.sai.sac);
         memcpy((unsigned char *)octet->data + size,
                 &target.sai, sizeof(target.sai));
         size += sizeof(target.sai);
     }
     if (target.flags.rai) {
         ogs_assert(size + sizeof(target.rai) <= data_len); 
-        target.rai.lac = htons(target.rai.lac);
-        target.rai.rac = htons(target.rai.rac);
+        target.rai.lac = htobe16(target.rai.lac);
+        target.rai.rac = htobe16(target.rai.rac);
         memcpy((unsigned char *)octet->data + size,
                 &target.rai, sizeof(target.rai));
         size += sizeof(target.rai);
     }
     if (target.flags.tai) {
         ogs_assert(size + sizeof(target.tai) <= data_len);
-        target.tai.tac = htons(target.tai.tac);
+        target.tai.tac = htobe16(target.tai.tac);
         memcpy((unsigned char *)octet->data + size,
                 &target.tai, sizeof(target.tai));
         size += sizeof(target.tai);
     }
     if (target.flags.e_cgi) {
         ogs_assert(size + sizeof(target.e_cgi) <= data_len);
-        target.e_cgi.cell_id = htonl(target.e_cgi.cell_id);
+        target.e_cgi.cell_id = htobe32(target.e_cgi.cell_id);
         memcpy((unsigned char *)octet->data + size,
                 &target.e_cgi, sizeof(target.e_cgi));
         size += sizeof(target.e_cgi);
     }
     if (target.flags.lai) {
         ogs_assert(size + sizeof(target.lai) <= data_len);
-        target.lai.lac = htons(target.lai.lac);
+        target.lai.lac = htobe16(target.lai.lac);
         memcpy((unsigned char *)octet->data + size,
                 &target.lai, sizeof(target.lai));
         size += sizeof(target.lai);

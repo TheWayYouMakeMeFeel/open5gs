@@ -113,7 +113,8 @@ int tests1ap_build_bearer_resource_allocation_request(
 int tests1ap_build_bearer_resource_modification_request(
         ogs_pkbuf_t **pkbuf,
         uint32_t mme_ue_s1ap_id, uint32_t enb_ue_s1ap_id,
-        uint8_t pti, uint32_t mac, uint8_t seq, uint8_t ebi, uint8_t qci,
+        uint8_t pti, uint32_t mac, uint8_t seq, uint8_t ebi,
+        uint8_t tft_code, uint8_t qci,
         uint8_t ul_mbr, uint8_t dl_mbr, uint8_t ul_gbr, uint8_t dl_gbr);
 int tests1ap_build_path_switch_request(
         ogs_pkbuf_t **pkbuf, int target, 

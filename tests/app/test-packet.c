@@ -2443,7 +2443,8 @@ int tests1ap_build_bearer_resource_allocation_request(
 }
 
 static void build_bearer_resource_modification_request(ogs_pkbuf_t **pkbuf,
-    uint8_t pti, uint32_t mac, uint8_t seq, uint8_t ebi, uint8_t qci,
+    uint8_t pti, uint32_t mac, uint8_t seq, uint8_t ebi,
+    uint8_t tft_code, uint8_t qci,
     uint8_t ul_mbr, uint8_t dl_mbr, uint8_t ul_gbr, uint8_t dl_gbr)
 {
     ogs_pkbuf_t *emmbuf = NULL;
@@ -2469,7 +2470,23 @@ static void build_bearer_resource_modification_request(ogs_pkbuf_t **pkbuf,
     req->eps_bearer_identity_for_packet_filter.eps_bearer_identity = ebi;
 
     memset(&tft, 0, sizeof tft);
-    tft.code = OGS_GTP_TFT_CODE_NO_TFT_OPERATION;
+    tft.code = tft_code;
+    if (tft.code != OGS_GTP_TFT_CODE_NO_TFT_OPERATION) {
+        int rv;
+        ogs_ipsubnet_t ipsubnet;
+
+        tft.num_of_packet_filter = 1;
+        tft.pf[0].direction = 3;
+        tft.pf[0].precedence = 0x0f;
+        tft.pf[0].length = 9;
+        tft.pf[0].component[0].type =
+            GTP_PACKET_FILTER_IPV4_REMOTE_ADDRESS_TYPE;
+        rv = ogs_ipsubnet(&ipsubnet, "201.20.2.5", NULL);
+        ogs_assert(rv == OGS_OK);
+        tft.pf[0].component[0].ipv4.addr = ipsubnet.sub[0];
+        tft.pf[0].component[0].ipv4.mask = ipsubnet.mask[0];
+        tft.pf[0].num_of_component = 1;
+    }
     tad->length = ogs_gtp_build_tft(&octet,
             &tft, tad->buffer, OGS_GTP_MAX_TRAFFIC_FLOW_TEMPLATE);
 
@@ -2500,7 +2517,8 @@ static void build_bearer_resource_modification_request(ogs_pkbuf_t **pkbuf,
 int tests1ap_build_bearer_resource_modification_request(
         ogs_pkbuf_t **pkbuf,
         uint32_t mme_ue_s1ap_id, uint32_t enb_ue_s1ap_id,
-        uint8_t pti, uint32_t mac, uint8_t seq, uint8_t ebi, uint8_t qci,
+        uint8_t pti, uint32_t mac, uint8_t seq, uint8_t ebi,
+        uint8_t tft_code, uint8_t qci,
         uint8_t ul_mbr, uint8_t dl_mbr, uint8_t ul_gbr, uint8_t dl_gbr)
 {
     int rv;
@@ -2561,7 +2579,8 @@ int tests1ap_build_bearer_resource_modification_request(
     NAS_PDU = &ie->value.choice.NAS_PDU;
 
     build_bearer_resource_modification_request(
-            &emmbuf, pti, mac, seq, ebi, qci, ul_mbr, dl_mbr, ul_gbr, dl_gbr);
+            &emmbuf, pti, mac, seq, ebi,
+            tft_code, qci, ul_mbr, dl_mbr, ul_gbr, dl_gbr);
     ogs_assert(emmbuf);
     NAS_PDU->size = emmbuf->len;
     NAS_PDU->buf = CALLOC(NAS_PDU->size, sizeof(uint8_t));

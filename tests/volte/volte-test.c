@@ -286,12 +286,24 @@ static void volte_test1(abts_case *tc, void *data)
 
     /* Send Bearer resource modification request */
     rv = tests1ap_build_bearer_resource_modification_request(&sendbuf,
-            1, 1, 3, 0xfbb0aa48, 7, 7, 1, 44, 55, 22, 33);
+            1, 1, 3, 0xfbb0aa48, 7, 7,
+            OGS_GTP_TFT_CODE_REPLACE_PACKET_FILTERS_IN_EXISTING,
+            1, 44, 55, 22, 33);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
     ogs_msleep(50);
+
+#if 0
+    /* Send Bearer resource modification request */
+    rv = tests1ap_build_bearer_resource_modification_request(&sendbuf,
+            1, 1, 3, 0xfbb0aa48, 7, 7,
+            OGS_GTP_TFT_CODE_NO_TFT_OPERATION,
+            1, 44, 55, 22, 33);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
+    rv = testenb_s1ap_send(s1ap, sendbuf);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
     /* Receive E-RAB Modify Request +
      * Modify EPS bearer context request */
@@ -310,6 +322,7 @@ static void volte_test1(abts_case *tc, void *data)
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
+#endif
 
 #if 0
     /* Send Session-Termination-Request */
