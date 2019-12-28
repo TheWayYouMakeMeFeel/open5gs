@@ -45,17 +45,23 @@ int16_t ogs_gtp_parse_bearer_qos(
     bearer_qos->qci = source->qci;
     size++;
 
+    /*
+     * Ch 8.15 Bearer QoS in TS 29.274 v15.9.0
+     *
+     * The UL/DL MBR and GBR fields are encoded as kilobits
+     * per second (1 kbps = 1000 bps) in binary value.
+     */
     bearer_qos->ul_mbr = ogs_buffer_to_uint64(
-            (unsigned char *)octet->data + size, 5);
+            (unsigned char *)octet->data + size, 5) * 1000;
     size += 5;
     bearer_qos->dl_mbr = ogs_buffer_to_uint64(
-            (unsigned char *)octet->data + size, 5);
+            (unsigned char *)octet->data + size, 5) * 1000;
     size += 5;
     bearer_qos->ul_gbr = ogs_buffer_to_uint64(
-            (unsigned char *)octet->data + size, 5);
+            (unsigned char *)octet->data + size, 5) * 1000;
     size += 5;
     bearer_qos->dl_gbr = ogs_buffer_to_uint64(
-            (unsigned char *)octet->data + size, 5);
+            (unsigned char *)octet->data + size, 5) * 1000;
     size += 5;
 
     ogs_assert(size == octet->len);
@@ -79,13 +85,23 @@ int16_t ogs_gtp_build_bearer_qos(ogs_tlv_octet_t *octet,
     memcpy((unsigned char *)octet->data + size, &target, 2);
     size += 2;
 
-    ogs_uint64_to_buffer(target.ul_mbr, 5, (unsigned char *)octet->data + size);
+    /*
+     * Ch 8.15 Bearer QoS in TS 29.274 v15.9.0
+     *
+     * The UL/DL MBR and GBR fields are encoded as kilobits
+     * per second (1 kbps = 1000 bps) in binary value.
+     */
+    ogs_uint64_to_buffer(target.ul_mbr / 1000, 5,
+            (unsigned char *)octet->data + size);
     size += 5;
-    ogs_uint64_to_buffer(target.dl_mbr, 5, (unsigned char *)octet->data + size);
+    ogs_uint64_to_buffer(target.dl_mbr / 1000, 5,
+            (unsigned char *)octet->data + size);
     size += 5;
-    ogs_uint64_to_buffer(target.ul_gbr, 5, (unsigned char *)octet->data + size);
+    ogs_uint64_to_buffer(target.ul_gbr / 1000, 5,
+            (unsigned char *)octet->data + size);
     size += 5;
-    ogs_uint64_to_buffer(target.dl_gbr, 5, (unsigned char *)octet->data + size);
+    ogs_uint64_to_buffer(target.dl_gbr / 1000, 5,
+            (unsigned char *)octet->data + size);
     size += 5;
 
     octet->len = size;
@@ -199,17 +215,23 @@ int16_t ogs_gtp_parse_flow_qos(
     flow_qos->qci = source->qci;
     size++;
 
+    /*
+     * Ch 8.16 Flow QoS in TS 29.274 v15.9.0
+     *
+     * The UL/DL MBR and GBR fields are encoded as kilobits
+     * per second (1 kbps = 1000 bps) in binary value.
+     */
     flow_qos->ul_mbr = ogs_buffer_to_uint64(
-            (unsigned char *)octet->data + size, 5);
+            (unsigned char *)octet->data + size, 5) * 1000;
     size += 5;
     flow_qos->dl_mbr = ogs_buffer_to_uint64(
-            (unsigned char *)octet->data + size, 5);
+            (unsigned char *)octet->data + size, 5) * 1000;
     size += 5;
     flow_qos->ul_gbr = ogs_buffer_to_uint64(
-            (unsigned char *)octet->data + size, 5);
+            (unsigned char *)octet->data + size, 5) * 1000;
     size += 5;
     flow_qos->dl_gbr = ogs_buffer_to_uint64(
-            (unsigned char *)octet->data + size, 5);
+            (unsigned char *)octet->data + size, 5) * 1000;
     size += 5;
 
     ogs_assert(size == octet->len);
@@ -233,13 +255,23 @@ int16_t ogs_gtp_build_flow_qos(ogs_tlv_octet_t *octet,
     memcpy((unsigned char *)octet->data + size, &target, 2);
     size += 1;
 
-    ogs_uint64_to_buffer(target.ul_mbr, 5, (unsigned char *)octet->data + size);
+    /*
+     * Ch 8.16 Flow QoS in TS 29.274 v15.9.0
+     *
+     * The UL/DL MBR and GBR fields are encoded as kilobits
+     * per second (1 kbps = 1000 bps) in binary value.
+     */
+    ogs_uint64_to_buffer(target.ul_mbr / 1000, 5,
+            (unsigned char *)octet->data + size);
     size += 5;
-    ogs_uint64_to_buffer(target.dl_mbr, 5, (unsigned char *)octet->data + size);
+    ogs_uint64_to_buffer(target.dl_mbr / 1000, 5,
+            (unsigned char *)octet->data + size);
     size += 5;
-    ogs_uint64_to_buffer(target.ul_gbr, 5, (unsigned char *)octet->data + size);
+    ogs_uint64_to_buffer(target.ul_gbr / 1000, 5,
+            (unsigned char *)octet->data + size);
     size += 5;
-    ogs_uint64_to_buffer(target.dl_gbr, 5, (unsigned char *)octet->data + size);
+    ogs_uint64_to_buffer(target.dl_gbr / 1000, 5,
+            (unsigned char *)octet->data + size);
     size += 5;
 
     octet->len = size;

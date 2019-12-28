@@ -217,7 +217,7 @@ void pgw_s5c_handle_create_bearer_response(
         return;
     }
 
-    /* Correlate with PGW-S%U-TEID */
+    /* Correlate with PGW-S5U-TEID */
     pgw_s5u_teid = req->bearer_contexts.s5_s8_u_pgw_f_teid.data;
     ogs_assert(pgw_s5u_teid);
 
