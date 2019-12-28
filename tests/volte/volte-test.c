@@ -272,13 +272,31 @@ static void volte_test1(abts_case *tc, void *data)
 
     ogs_msleep(50);
 
-    /* Send Bearer resource modification request */
-    rv = tests1ap_build_bearer_resource_modification_request(&sendbuf,
-            1, 1, 3, 0xfbb0aa48, 7, 7, 1, 44, 55, 22, 33);
+    /* Send Bearer resource allocation request */
+    rv = tests1ap_build_bearer_resource_allocation_request(&sendbuf, msgindex);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
+    /* Receive E-RAB Modify Request +
+     * Modify EPS bearer context request */
+    recvbuf = testenb_s1ap_read(s1ap);
+    ABTS_PTR_NOTNULL(tc, recvbuf);
+    ogs_pkbuf_free(recvbuf);
+
+    /* Send Bearer resource modification request */
+    rv = tests1ap_build_bearer_resource_modification_request(&sendbuf,
+#if 0
+            1, 1, 3, 0xfbb0aa48, 7, 7, 1, 44, 55, 22, 33);
+#endif
+            1, 1, 3, 0xfbb0aa48, 7, 6, 1, 0, 0, 0, 0);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
+    rv = testenb_s1ap_send(s1ap, sendbuf);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
+
+    ogs_msleep(50);
+
+#if 0
     /* Receive E-RAB Modify Request +
      * Modify EPS bearer context request */
     recvbuf = testenb_s1ap_read(s1ap);
@@ -296,6 +314,7 @@ static void volte_test1(abts_case *tc, void *data)
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
+#endif
 
 #if 0
     /* Send Session-Termination-Request */

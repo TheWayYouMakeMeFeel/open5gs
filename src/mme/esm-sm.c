@@ -233,6 +233,12 @@ void esm_state_active(ogs_fsm_t *s, mme_event_t *e)
             mme_gtp_send_delete_bearer_response(bearer);
             OGS_FSM_TRAN(s, esm_state_bearer_deactivated);
             break;
+        case OGS_NAS_BEARER_RESOURCE_ALLOCATION_REQUEST:
+            ogs_debug("[ESM] Bearer resource allocation request");
+            ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",
+                    mme_ue->imsi_bcd, sess->pti, bearer->ebi);
+            esm_handle_bearer_resource_allocation_request(bearer, message);
+            break;
         case OGS_NAS_BEARER_RESOURCE_MODIFICATION_REQUEST:
             ogs_debug("[ESM] Bearer resource modification request");
             ogs_debug("    IMSI[%s] PTI[%d] EBI[%d]",

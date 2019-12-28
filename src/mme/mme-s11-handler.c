@@ -799,7 +799,10 @@ void mme_s11_handle_bearer_resource_failure_indication(
     int rv;
     uint8_t cause_value = 0;
 
+    mme_bearer_t *bearer = NULL;
+
     ogs_assert(xact);
+    bearer = xact->data;
     ogs_assert(ind);
 
     ogs_debug("[MME] Bearer Resource Failure Indication");
@@ -820,4 +823,7 @@ void mme_s11_handle_bearer_resource_failure_indication(
 
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
             mme_ue->mme_s11_teid, mme_ue->sgw_s11_teid);
+
+    nas_send_bearer_resource_modification_reject(
+            bearer, ESM_CAUSE_SERVICE_OPTION_NOT_SUPPORTED);
 }

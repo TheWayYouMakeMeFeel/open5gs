@@ -150,6 +150,16 @@ int esm_handle_information_response(mme_sess_t *sess,
     return OGS_OK;
 }
 
+int esm_handle_bearer_resource_allocation_request(
+        mme_bearer_t *bearer, ogs_nas_message_t *message)
+{
+    ogs_assert(bearer);
+    nas_send_bearer_resource_allocation_reject(
+            bearer, ESM_CAUSE_SERVICE_OPTION_NOT_SUPPORTED);
+
+    return OGS_OK;
+}
+
 int esm_handle_bearer_resource_modification_request(
         mme_bearer_t *bearer, ogs_nas_message_t *message)
 {

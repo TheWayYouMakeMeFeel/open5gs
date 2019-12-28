@@ -770,7 +770,10 @@ ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
             break;
         case OGS_NAS_BEARER_RESOURCE_MODIFICATION_REQUEST:
             modification = &nas_message->esm.bearer_resource_modification_request;
-            qos = &modification->required_traffic_flow_qos;
+            if (modification->presencemask &
+                OGS_NAS_BEARER_RESOURCE_MODIFICATION_REQUEST_REQUIRED_TRAFFIC_FLOW_QOS_PRESENT) {
+                qos = &modification->required_traffic_flow_qos;
+            }
             tad = &modification->traffic_flow_aggregate;
             break;
         default:
@@ -797,25 +800,36 @@ ogs_pkbuf_t *mme_s11_build_bearer_resource_command(
         cmd->procedure_transaction_id.u8 = sess->pti;
 
         /* Flow Quality of Service(QoS) */
-        memset(&flow_qos, 0, sizeof(flow_qos));
-        flow_qos.qci = qos->qci;
-        flow_qos.ul_mbr = qos->ul_mbr == 0 ? 0:
+        if (qos) {
+            memset(&flow_qos, 0, sizeof(flow_qos));
+            flow_qos.qci = qos->qci;
+
+            /* Octet 4
+             *
+             * In UE to network direction:
+             * 00000000 Subscribed maximum bit rate
+             *
+             * In network to UE direction:
+             * 00000000 Reserved
+             */
+            flow_qos.ul_mbr = qos->ul_mbr == 0 ? bearer->qos.mbr.uplink :
                 ogs_gtp_qos_to_bps(
                     qos->ul_mbr, qos->ul_mbr_extended, qos->ul_mbr_extended2);
-        flow_qos.dl_mbr = qos->dl_mbr == 0 ? 0:
+            flow_qos.dl_mbr = qos->dl_mbr == 0 ? bearer->qos.mbr.downlink :
                 ogs_gtp_qos_to_bps(
                     qos->dl_mbr, qos->dl_mbr_extended, qos->dl_mbr_extended2);
-        flow_qos.ul_gbr = qos->ul_gbr == 0 ? 0:
+            flow_qos.ul_gbr = qos->ul_gbr == 0 ? bearer->qos.gbr.uplink :
                 ogs_gtp_qos_to_bps(
                     qos->ul_gbr, qos->ul_gbr_extended, qos->ul_gbr_extended2);
-        flow_qos.dl_gbr = qos->dl_gbr == 0 ? 0:
+            flow_qos.dl_gbr = qos->dl_gbr == 0 ? bearer->qos.gbr.downlink :
                 ogs_gtp_qos_to_bps(
                     qos->dl_gbr, qos->dl_gbr_extended, qos->dl_gbr_extended2);
 
-        ogs_gtp_build_flow_qos(
-                &cmd->flow_quality_of_service,
-                &flow_qos, flow_qos_buf, GTP_FLOW_QOS_LEN);
-        cmd->flow_quality_of_service.presence = 1;
+            ogs_gtp_build_flow_qos(
+                    &cmd->flow_quality_of_service,
+                    &flow_qos, flow_qos_buf, GTP_FLOW_QOS_LEN);
+            cmd->flow_quality_of_service.presence = 1;
+        }
 
         /* Traffic Aggregate Description(TAD) */
         cmd->traffic_aggregate_description.presence = 1;

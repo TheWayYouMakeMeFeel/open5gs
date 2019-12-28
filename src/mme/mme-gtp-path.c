@@ -462,7 +462,7 @@ void mme_gtp_send_bearer_resource_command(
     pkbuf = mme_s11_build_bearer_resource_command(h.type, bearer, nas_message);
     ogs_expect_or_return(pkbuf);
 
-    xact = ogs_gtp_xact_local_create(mme_ue->gnode, &h, pkbuf, timeout, mme_ue);
+    xact = ogs_gtp_xact_local_create(mme_ue->gnode, &h, pkbuf, timeout, bearer);
     ogs_expect_or_return(xact);
     xact->xid |= OGS_GTP_CMD_XACT_ID;
 

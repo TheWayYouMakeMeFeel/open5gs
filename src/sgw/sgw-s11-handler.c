@@ -1252,10 +1252,6 @@ void sgw_s11_handle_bearer_resource_command(ogs_gtp_xact_t *s11_xact,
         ogs_error("No PTI");
         cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
     }
-    if (cmd->flow_quality_of_service.presence == 0) {
-        ogs_error("No Flow Quality of Service(QOS)");
-        cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
-    }
     if (cmd->traffic_aggregate_description.presence == 0) {
         ogs_error("No Traffic aggregate description(TAD)");
         cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;

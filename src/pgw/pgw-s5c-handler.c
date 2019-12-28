@@ -388,6 +388,14 @@ void pgw_s5c_handle_bearer_resource_command(
         qos_presence = 1;
     }
 
+    if (tft_presence == 0 && qos_presence == 0) {
+        /* No modification */
+        ogs_gtp_send_error_message(xact, sess ? sess->sgw_s5c_teid : 0,
+                OGS_GTP_BEARER_RESOURCE_FAILURE_INDICATION_TYPE,
+                OGS_GTP_CAUSE_SERVICE_NOT_SUPPORTED);
+        return;
+    }
+
     memset(&h, 0, sizeof(ogs_gtp_header_t));
     h.type = OGS_GTP_UPDATE_BEARER_REQUEST_TYPE;
     h.teid = sess->sgw_s5c_teid;
