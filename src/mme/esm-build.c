@@ -118,6 +118,11 @@ ogs_pkbuf_t *esm_build_activate_default_bearer_context_request(
     ogs_assert(pdn);
     bearer = mme_default_bearer_in_sess(sess);
     ogs_assert(bearer);
+
+    if (mme_bearer_next(bearer) != NULL) {
+        ogs_error("PDN connectivity duplicated");
+        return NULL;
+    }
     ogs_assert(mme_bearer_next(bearer) == NULL);
 
     ogs_debug("[ESM] Activate default bearer context request");
