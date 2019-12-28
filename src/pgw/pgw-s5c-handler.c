@@ -328,8 +328,9 @@ void pgw_s5c_handle_bearer_resource_command(
     ogs_gtp_header_t h;
     ogs_pkbuf_t *pkbuf = NULL;
 
-    ogs_gtp_flow_qos_t flow_qos;
     pgw_bearer_t *bearer = NULL;
+    int qos_presence = 0;
+    int tft_presence = 0;
 
     ogs_assert(xact);
     ogs_assert(sess);
@@ -358,22 +359,6 @@ void pgw_s5c_handle_bearer_resource_command(
         ogs_error("No PTI");
         cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
     }
-    if (cmd->flow_quality_of_service.presence == 0) {
-        ogs_error("No Flow Quality of Service(QOS)");
-        cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
-    } else {
-        uint16_t decoded = 0;
-        decoded = ogs_gtp_parse_flow_qos(&flow_qos,
-            &cmd->flow_quality_of_service);
-        ogs_assert(cmd->flow_quality_of_service.len == decoded);
-
-        bearer = pgw_bearer_find_by_qci(sess, flow_qos.qci);
-        if (!bearer) {
-            ogs_error("No Bearer for QCI[%d]",
-                    cmd->linked_eps_bearer_id.u8);
-            cause_value = OGS_GTP_CAUSE_CONTEXT_NOT_FOUND;
-        }
-    }
     if (cmd->traffic_aggregate_description.presence == 0) {
         ogs_error("No Traffic aggregate description(TAD)");
         cause_value = OGS_GTP_CAUSE_MANDATORY_IE_MISSING;
@@ -387,13 +372,29 @@ void pgw_s5c_handle_bearer_resource_command(
 
     ogs_assert(bearer);
 
+    if (cmd->flow_quality_of_service.presence) {
+        int16_t decoded;
+        ogs_gtp_flow_qos_t flow_qos;
+
+        decoded = ogs_gtp_parse_flow_qos(
+                &flow_qos, &cmd->flow_quality_of_service);
+        ogs_assert(cmd->flow_quality_of_service.len == decoded);
+
+        bearer->qos.mbr.uplink = flow_qos.ul_mbr;
+        bearer->qos.mbr.downlink = flow_qos.dl_mbr;
+        bearer->qos.gbr.uplink = flow_qos.ul_gbr;
+        bearer->qos.gbr.downlink = flow_qos.dl_gbr;
+
+        qos_presence = 1;
+    }
+
     memset(&h, 0, sizeof(ogs_gtp_header_t));
     h.type = OGS_GTP_UPDATE_BEARER_REQUEST_TYPE;
     h.teid = sess->sgw_s5c_teid;
 
     pkbuf = pgw_s5c_build_update_bearer_request(
             h.type, bearer,
-            cmd->procedure_transaction_id.u8, 0, 0);
+            cmd->procedure_transaction_id.u8, qos_presence, tft_presence);
     ogs_expect_or_return(pkbuf);
 
     rv = ogs_gtp_xact_update_tx(xact, &h, pkbuf);
