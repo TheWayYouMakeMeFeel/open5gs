@@ -254,7 +254,6 @@ pgw_bearer_t *pgw_bearer_find(uint32_t index);
 pgw_bearer_t *pgw_bearer_find_by_pgw_s5u_teid(uint32_t pgw_s5u_teid);
 pgw_bearer_t *pgw_bearer_find_by_ebi(pgw_sess_t *sess, uint8_t ebi);
 pgw_bearer_t *pgw_bearer_find_by_name(pgw_sess_t *sess, char *name);
-pgw_bearer_t *pgw_bearer_find_by_qci(pgw_sess_t *sess, uint8_t qci);
 pgw_bearer_t *pgw_bearer_find_by_qci_arp(pgw_sess_t *sess, 
                                 uint8_t qci,
                                 uint8_t priority_level,

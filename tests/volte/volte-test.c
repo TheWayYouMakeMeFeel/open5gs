@@ -272,9 +272,9 @@ static void volte_test1(abts_case *tc, void *data)
 
     ogs_msleep(50);
 
-    /* Send Modify EPS bearer context accept */
+    /* Send Bearer resource modification request */
     rv = tests1ap_build_bearer_resource_modification_request(&sendbuf,
-            1, 1, 3, 0xf9e15c3e, 7, 6, 1, 44, 55, 22, 33);
+            1, 1, 3, 0xfbb0aa48, 7, 7, 1, 44, 55, 22, 33);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
