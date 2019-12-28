@@ -361,6 +361,7 @@ int16_t ogs_gtp_parse_tft(ogs_gtp_tft_t *tft, ogs_tlv_octet_t *octet)
                     sizeof(tft->pf[i].component[j].ipv6.prefixlen));
                 len += sizeof(tft->pf[i].component[j].ipv6.prefixlen);
                 break;
+            case GTP_PACKET_FILTER_IPV6_LOCAL_ADDRESS_TYPE:
             case GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_TYPE:
                 ogs_assert(size+len+
                     sizeof(tft->pf[i].component[j].ipv6_mask.addr) <=
@@ -497,8 +498,8 @@ int16_t ogs_gtp_build_tft(
                         sizeof(target.pf[i].component[j].ipv4.mask));
                 size += sizeof(target.pf[i].component[j].ipv4.mask);
                 break;
-            case GTP_PACKET_FILTER_IPV6_LOCAL_ADDRESS_PREFIX_LENGTH_TYPE:
             case GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_PREFIX_LENGTH_TYPE:
+            case GTP_PACKET_FILTER_IPV6_LOCAL_ADDRESS_PREFIX_LENGTH_TYPE:
                 ogs_assert(size +
                     sizeof(target.pf[i].component[j].ipv6.addr)
                         <= data_len);
@@ -516,6 +517,7 @@ int16_t ogs_gtp_build_tft(
                 size += sizeof(target.pf[i].component[j].ipv6.prefixlen);
                 break;
             case GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_TYPE:
+            case GTP_PACKET_FILTER_IPV6_LOCAL_ADDRESS_TYPE:
                 ogs_assert(size +
                     sizeof(target.pf[i].component[j].ipv6_mask.addr)
                         <= data_len);
