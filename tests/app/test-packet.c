@@ -2144,7 +2144,8 @@ int tests1ap_build_e_rab_modify_response(ogs_pkbuf_t **pkbuf, int i)
     const char *payload[TESTS1AP_MAX_MESSAGE] = { 
         "2006"
         "001b000003000040 0480000001000840 020001001f400600 002500010e",
-        "",
+        "2006"
+        "001b000003000040 0480000001000840 020001001f400600 002500010c",
         "",
 
         "",
@@ -2158,7 +2159,7 @@ int tests1ap_build_e_rab_modify_response(ogs_pkbuf_t **pkbuf, int i)
     };
     uint16_t len[TESTS1AP_MAX_MESSAGE] = {
         31,
-        0,
+        31,
         0,
 
         0,
@@ -2319,7 +2320,9 @@ int tests1ap_build_modify_bearer_accept(
         "000d"
         "4035000005000000 0480000001000800 020001001a000a09 27a5c0d564067200"
         "ca006440080064f0 430020a000004340 060064f043020a",
-        "",
+        "000d"
+        "4035000005000000 0480000001000800 020001001a000a09 27ce866255076203"
+        "ca006440080064f0 430020a000004340 060064f043020a",
         "",
 
         "",
@@ -2336,7 +2339,7 @@ int tests1ap_build_modify_bearer_accept(
     };
     uint16_t len[TESTS1AP_MAX_MESSAGE] = {
         57,
-        0,
+        57,
         0,
 
         0,
