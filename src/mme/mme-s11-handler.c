@@ -823,7 +823,7 @@ void mme_s11_handle_bearer_resource_failure_indication(
 
         cause_value = cause->value;
         if (cause_value != OGS_GTP_CAUSE_REQUEST_ACCEPTED)
-            ogs_error("GTP Failed [CAUSE:%d] - Ignored", cause_value);
+            ogs_warn("GTP Failed [CAUSE:%d] - Ignored", cause_value);
     } else {
         ogs_error("No Cause");
     }

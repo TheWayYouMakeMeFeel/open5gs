@@ -2321,9 +2321,11 @@ int tests1ap_build_modify_bearer_accept(
         "4035000005000000 0480000001000800 020001001a000a09 27a5c0d564067200"
         "ca006440080064f0 430020a000004340 060064f043020a",
         "000d"
-        "4035000005000000 0480000001000800 020001001a000a09 2700d75d40077203"
+        "4035000005000000 0480000001000800 020001001a000a09 27a6746cea097204"
         "ca006440080064f0 430020a000004340 060064f043020a",
-        "",
+        "000d"
+        "4035000005000000 0480000001000800 020001001a000a09 2726b727fe0a7205"
+        "ca006440080064f0 430020a000004340 060064f043020a",
 
         "",
         "",
@@ -2340,7 +2342,7 @@ int tests1ap_build_modify_bearer_accept(
     uint16_t len[TESTS1AP_MAX_MESSAGE] = {
         57,
         57,
-        0,
+        57,
 
         0,
         0,
@@ -2475,7 +2477,8 @@ static void build_bearer_resource_modification_request(ogs_pkbuf_t **pkbuf,
     tft.code = tft_code;
     if (tft.code == OGS_GTP_TFT_CODE_REPLACE_PACKET_FILTERS_IN_EXISTING) {
         tft.num_of_packet_filter = 1;
-        tft.pf[0].direction = 3;
+        tft.pf[0].direction = 1;
+        tft.pf[0].identifier = 0;
         tft.pf[0].precedence = 0x0f;
         tft.pf[0].length = 9;
         tft.pf[0].component[0].type =
@@ -2485,6 +2488,33 @@ static void build_bearer_resource_modification_request(ogs_pkbuf_t **pkbuf,
         tft.pf[0].component[0].ipv4.addr = ipsubnet.sub[0];
         tft.pf[0].component[0].ipv4.mask = ipsubnet.mask[0];
         tft.pf[0].num_of_component = 1;
+    } else if (tft.code ==
+            OGS_GTP_TFT_CODE_ADD_PACKET_FILTERS_TO_EXISTING_TFT) {
+        tft.num_of_packet_filter = 1;
+        tft.pf[0].direction = 1;
+        tft.pf[0].identifier = 4;
+        tft.pf[0].precedence = 0x0f;
+
+        rv = ogs_ipsubnet(&ipsubnet, "cafe::9", "120");
+        ogs_assert(rv == OGS_OK);
+#if 1
+        tft.pf[0].length = 18;
+        tft.pf[0].component[0].type =
+            GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_PREFIX_LENGTH_TYPE;
+        memcpy(tft.pf[0].component[0].ipv6.addr, ipsubnet.sub,
+                sizeof(tft.pf[0].component[0].ipv6.addr));
+        tft.pf[0].component[0].ipv6.prefixlen = 120;
+#else
+        tft.pf[0].length = 33;
+        tft.pf[0].component[0].type =
+            GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_TYPE;
+        memcpy(tft.pf[0].component[0].ipv6_mask.addr, ipsubnet.sub,
+                sizeof(tft.pf[0].component[0].ipv6_mask.addr));
+        memcpy(tft.pf[0].component[0].ipv6_mask.mask, ipsubnet.mask,
+                sizeof(tft.pf[0].component[0].ipv6_mask.mask));
+#endif
+        tft.pf[0].num_of_component = 1;
+
     } else if (tft.code == OGS_GTP_TFT_CODE_CREATE_NEW_TFT) {
         tft.num_of_packet_filter = 4;
 

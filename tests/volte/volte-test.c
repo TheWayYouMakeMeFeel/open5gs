@@ -278,28 +278,29 @@ static void volte_test1(abts_case *tc, void *data)
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Receive E-RAB Modify Request +
-     * Modify EPS bearer context request */
+    /* Receive Bearer resource allocation reject */
     recvbuf = testenb_s1ap_read(s1ap);
     ABTS_PTR_NOTNULL(tc, recvbuf);
     ogs_pkbuf_free(recvbuf);
 
     /* Send Bearer resource modification request */
     rv = tests1ap_build_bearer_resource_modification_request(&sendbuf,
-            1, 1, 3, 0xfbb0aa48, 7, 7,
-            OGS_GTP_TFT_CODE_REPLACE_PACKET_FILTERS_IN_EXISTING,
-            1, 44, 55, 22, 33);
+            1, 1, 3, 0x3f426e62, 7, 7,
+            OGS_GTP_TFT_CODE_NO_TFT_OPERATION,
+            1, 0, 0, 0, 0);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    ogs_msleep(50);
+    /* Receive Bearer resource modification reject */
+    recvbuf = testenb_s1ap_read(s1ap);
+    ABTS_PTR_NOTNULL(tc, recvbuf);
+    ogs_pkbuf_free(recvbuf);
 
-#if 0
     /* Send Bearer resource modification request */
     rv = tests1ap_build_bearer_resource_modification_request(&sendbuf,
-            1, 1, 3, 0xfbb0aa48, 7, 7,
-            OGS_GTP_TFT_CODE_NO_TFT_OPERATION,
+            1, 1, 4, 0xdc64fbbc, 8, 7,
+            OGS_GTP_TFT_CODE_ADD_PACKET_FILTERS_TO_EXISTING_TFT,
             1, 44, 55, 22, 33);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
@@ -322,9 +323,34 @@ static void volte_test1(abts_case *tc, void *data)
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
-#endif
 
-#if 0
+    /* Send Bearer resource modification request */
+    rv = tests1ap_build_bearer_resource_modification_request(&sendbuf,
+            1, 1, 5, 0x87a44610, 9, 7,
+            OGS_GTP_TFT_CODE_REPLACE_PACKET_FILTERS_IN_EXISTING,
+            1, 0, 0, 0, 0);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
+    rv = testenb_s1ap_send(s1ap, sendbuf);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
+
+    /* Receive E-RAB Modify Request +
+     * Modify EPS bearer context request */
+    recvbuf = testenb_s1ap_read(s1ap);
+    ABTS_PTR_NOTNULL(tc, recvbuf);
+    ogs_pkbuf_free(recvbuf);
+
+    /* Send E-RAB Modify Response */
+    rv = tests1ap_build_e_rab_modify_response(&sendbuf, msgindex+1);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
+    rv = testenb_s1ap_send(s1ap, sendbuf);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
+
+    /* Send Modify EPS bearer context accept */
+    rv = tests1ap_build_modify_bearer_accept(&sendbuf, msgindex+2);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
+    rv = testenb_s1ap_send(s1ap, sendbuf);
+    ABTS_INT_EQUAL(tc, OGS_OK, rv);
+
     /* Send Session-Termination-Request */
     pcscf_rx_send_str(rx_sid);
 
@@ -364,7 +390,6 @@ static void volte_test1(abts_case *tc, void *data)
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
-#endif
 
     ogs_msleep(300);
 
@@ -678,9 +703,7 @@ abts_suite *test_volte(abts_suite *suite)
     suite = ADD_SUITE(suite)
 
     abts_run_test(suite, volte_test1, NULL);
-#if 0
     abts_run_test(suite, volte_test2, NULL);
-#endif
 
     return suite;
 }

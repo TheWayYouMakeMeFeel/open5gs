@@ -24,6 +24,8 @@
 #include "pgw-s5c-build.h"
 #include "pgw-s5c-handler.h"
 
+#include "ipfw/ipfw2.h"
+
 void pgw_s5c_handle_create_session_request(
         pgw_sess_t *sess, ogs_gtp_xact_t *xact,
         ogs_pkbuf_t *gtpbuf, ogs_gtp_create_session_request_t *req)
@@ -347,6 +349,12 @@ static int reconfigure_packet_filter(pgw_pf_t *pf, ogs_gtp_tft_t *tft, int i)
                 sizeof(pf->rule.ip.remote.mask));
             break;
         case GTP_PACKET_FILTER_IPV6_REMOTE_ADDRESS_PREFIX_LENGTH_TYPE:
+            pf->rule.ipv6_remote = 1;
+            memcpy(pf->rule.ip.remote.addr,
+                tft->pf[i].component[j].ipv6_mask.addr,
+                sizeof(pf->rule.ip.remote.addr));
+            n2mask((struct in6_addr *)pf->rule.ip.remote.mask,
+                tft->pf[i].component[j].ipv6.prefixlen);
             break;
         case GTP_PACKET_FILTER_IPV6_LOCAL_ADDRESS_TYPE:
             pf->rule.ipv6_local = 1;
@@ -358,15 +366,12 @@ static int reconfigure_packet_filter(pgw_pf_t *pf, ogs_gtp_tft_t *tft, int i)
                 sizeof(pf->rule.ip.local.mask));
             break;
         case GTP_PACKET_FILTER_IPV6_LOCAL_ADDRESS_PREFIX_LENGTH_TYPE:
-#if 0
             pf->rule.ipv6_local = 1;
             memcpy(pf->rule.ip.local.addr,
-                tft->pf[i].component[j].ipv6.addr,
-                sizeof(pf->rule.ip.local.addr),
-            memcpy(pf->rule.ip.local.mask,
-                tft->pf[i].component[j].ipv6.mask,
-                sizeof(pf->rule.ip.local.mask),
-#endif
+                tft->pf[i].component[j].ipv6_mask.addr,
+                sizeof(pf->rule.ip.local.addr));
+            n2mask((struct in6_addr *)pf->rule.ip.local.mask,
+                tft->pf[i].component[j].ipv6.prefixlen);
             break;
         case GTP_PACKET_FILTER_SINGLE_LOCAL_PORT_TYPE:
             pf->rule.port.local.low = pf->rule.port.local.high =
