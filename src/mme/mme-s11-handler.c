@@ -798,17 +798,11 @@ void mme_s11_handle_bearer_resource_failure_indication(
 {
     int rv;
     uint8_t cause_value = 0;
-    mme_sess_t *sess = NULL;
 
     ogs_assert(xact);
     ogs_assert(ind);
 
     ogs_debug("[MME] Bearer Resource Failure Indication");
-
-    sess = xact->data;
-    ogs_assert(sess);
-    mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect_or_return(rv == OGS_OK);
