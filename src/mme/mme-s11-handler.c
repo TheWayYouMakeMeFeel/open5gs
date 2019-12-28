@@ -506,6 +506,13 @@ void mme_s11_handle_update_bearer_request(
         } else {
             ogs_warn("[IGNORE] Update Bearer Request : "
                     "Both QoS and TFT is NULL");
+
+            if (xact->xid & OGS_GTP_CMD_XACT_ID) {
+                /* MME recieved Bearer resource modification request */
+                nas_send_bearer_resource_modification_reject(
+                        bearer, ESM_CAUSE_SERVICE_OPTION_NOT_SUPPORTED);
+            }
+
             mme_gtp_send_update_bearer_response(bearer);
         }
     } else {
