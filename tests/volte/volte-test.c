@@ -285,14 +285,14 @@ static void volte_test1(abts_case *tc, void *data)
     ABTS_PTR_NOTNULL(tc, recvbuf);
     ogs_pkbuf_free(recvbuf);
 
-    /* Send E-RAB Modify Response */
-    rv = tests1ap_build_e_rab_modify_response(&sendbuf, msgindex+1);
+    /* Send Modify EPS bearer context accept */
+    rv = tests1ap_build_modify_bearer_accept(&sendbuf, msgindex+1);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
 
-    /* Send Modify EPS bearer context accept */
-    rv = tests1ap_build_modify_bearer_accept(&sendbuf, msgindex+1);
+    /* Send E-RAB Modify Response */
+    rv = tests1ap_build_e_rab_modify_response(&sendbuf, msgindex+1);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
     rv = testenb_s1ap_send(s1ap, sendbuf);
     ABTS_INT_EQUAL(tc, OGS_OK, rv);
