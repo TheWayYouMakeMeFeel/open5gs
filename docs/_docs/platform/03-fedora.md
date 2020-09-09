@@ -3,7 +3,7 @@ title: Fedora
 head_inline: "<style> .blue { color: blue; } </style>"
 ---
 
-This guide is based on **Fedora 30** Distribution.
+This guide is based on **Fedora 31** Distribution.
 {: .blue}
 
 ### Getting MongoDB
@@ -48,7 +48,7 @@ $ sysctl -n net.ipv6.conf.ogstun.disable_ipv6
 You are now ready to set the IP address on TUN device. 
 
 ```bash
-$ sudo ip addr add 45.45.0.1/16 dev ogstun
+$ sudo ip addr add 10.45.0.1/16 dev ogstun
 $ sudo ip addr add cafe::1/64 dev ogstun
 ```
 
@@ -67,13 +67,12 @@ $ ip link show
 
 Install the depedencies for building the source code.
 ```bash
-$ sudo dnf install python3 ninja-build gcc flex bison git lksctp-tools-devel libidn-devel gnutls-devel libgcrypt-devel openssl-devel cyrus-sasl-devel libyaml-devel iproute mongo-c-driver-devel
+$ sudo dnf install python3 ninja-build gcc flex bison git lksctp-tools-devel libidn-devel gnutls-devel libgcrypt-devel openssl-devel cyrus-sasl-devel libyaml-devel mongo-c-driver-devel libmicrohttpd-devel libcurl-devel iproute
 ```
 
-Install Meson using Python.
+Install Meson
 ```bash
-$ sudo pip3 install --upgrade pip 
-$ sudo pip install meson
+$ sudo dnf install meson
 ```
 
 Git clone.
@@ -92,16 +91,24 @@ $ ninja -C build
 
 Check whether the compilation is correct.
 ```bash
-$ ninja -C build test
+$ ./build/tests/attach/attach ## EPC Only
+$ ./build/tests/registration/registration ## 5G Core Only
 ```
 
-**Tip:** You can also check the result of `ninja -C build test` with a tool that captures packets. If you are running `wireshark`, select the `loopback` interface and set FILTER to `s1ap || gtpv2 || diameter || gtp`.  You can see the virtually created packets. [[testsimple.pcapng]]({{ site.url }}{{ site.baseurl }}/assets/pcapng/testsimple.pcapng)
+Run all test programs as below.
+```bash
+$ cd build
+$ meson test -v
+```
+
+**Tip:** You can also check the result of `ninja -C build test` with a tool that captures packets. If you are running `wireshark`, select the `loopback` interface and set FILTER to `s1ap || gtpv2 || pfcp || diameter || gtp || ngap || http`.  You can see the virtually created packets. [testattach.pcapng]({{ site.url }}{{ site.baseurl }}/assets/pcapng/testattach.pcapng)/[testregistration.pcapng]({{ site.url }}{{ site.baseurl }}/assets/pcapng/testregistration.pcapng)
 {: .notice--info}
 
-You need to perform **the installation process**.
+You need to perform the **installation process**.
 ```bash
 $ cd build
 $ ninja install
+$ cd ../
 ```
 
 ### Building WebUI of Open5GS

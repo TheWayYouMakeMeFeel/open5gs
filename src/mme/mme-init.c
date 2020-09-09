@@ -37,16 +37,15 @@ int mme_initialize()
     int rv;
 
     mme_context_init();
-    mme_event_init();
 
-    rv = ogs_gtp_xact_init(mme_self()->timer_mgr, 512);
+    rv = ogs_gtp_xact_init();
     if (rv != OGS_OK) return rv;
 
     rv = mme_context_parse_config();
     if (rv != OGS_OK) return rv;
 
     rv = ogs_log_config_domain(
-            ogs_config()->logger.domain, ogs_config()->logger.level);
+            ogs_app()->logger.domain, ogs_app()->logger.level);
     if (rv != OGS_OK) return rv;
 
     rv = mme_m_tmsi_pool_generate();
@@ -76,8 +75,6 @@ void mme_terminate(void)
     mme_context_final();
 
     ogs_gtp_xact_final();
-
-    mme_event_final();
 }
 
 static void mme_main(void *data)
@@ -89,37 +86,26 @@ static void mme_main(void *data)
     ogs_fsm_init(&mme_sm, 0);
 
     for ( ;; ) {
-        ogs_pollset_poll(mme_self()->pollset,
-                ogs_timer_mgr_next(mme_self()->timer_mgr));
+        ogs_pollset_poll(ogs_app()->pollset,
+                ogs_timer_mgr_next(ogs_app()->timer_mgr));
 
-        /* Process the MESSAGE FIRST.
+        /*
+         * After ogs_pollset_poll(), ogs_timer_mgr_expire() must be called.
          *
-         * For example, if UE Context Release Complete is received,
-         * the MME_TIMER_UE_CONTEXT_RELEASE is first stopped */
+         * The reason is why ogs_timer_mgr_next() can get the corrent value
+         * when ogs_timer_stop() is called internally in ogs_timer_mgr_expire().
+         *
+         * You should not use event-queue before ogs_timer_mgr_expire().
+         * In this case, ogs_timer_mgr_expire() does not work
+         * because 'if rv == OGS_DONE' statement is exiting and
+         * not calling ogs_timer_mgr_expire().
+         */
+        ogs_timer_mgr_expire(ogs_app()->timer_mgr);
+
         for ( ;; ) {
             mme_event_t *e = NULL;
 
-            rv = ogs_queue_trypop(mme_self()->queue, (void**)&e);
-            ogs_assert(rv != OGS_ERROR);
-
-            if (rv == OGS_DONE)
-                goto done;
-
-            if (rv == OGS_RETRY)
-                break;
-
-            ogs_assert(e);
-            ogs_fsm_dispatch(&mme_sm, e);
-            mme_event_free(e);
-        }
-
-        ogs_timer_mgr_expire(mme_self()->timer_mgr);
-
-        /* AND THEN, process the TIMER. */
-        for ( ;; ) {
-            mme_event_t *e = NULL;
-
-            rv = ogs_queue_trypop(mme_self()->queue, (void**)&e);
+            rv = ogs_queue_trypop(ogs_app()->queue, (void**)&e);
             ogs_assert(rv != OGS_ERROR);
 
             if (rv == OGS_DONE)

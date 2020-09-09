@@ -22,15 +22,19 @@ libgtp_sources = files('''
     types.h
     conv.h
     node.h
+    build.h
     path.h
     xact.h
+    util.h
 
     message.c
     types.c
     conv.c
     node.c
+    build.c
     path.c
     xact.c
+    util.c
 '''.split())
 
 libgtp_inc = include_directories('.')
@@ -40,10 +44,10 @@ libgtp = library('ogsgtp',
     version : libogslib_version,
     c_args : '-DOGS_GTP_COMPILATION',
     include_directories : [libgtp_inc, libinc],
-    dependencies : libcore_dep,
+    dependencies : [libcore_dep, libapp_dep],
     install : true)
 
 libgtp_dep = declare_dependency(
     link_with : libgtp,
     include_directories : [libgtp_inc, libinc],
-    dependencies : libcore_dep)
+    dependencies : [libcore_dep, libapp_dep])

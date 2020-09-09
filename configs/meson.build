@@ -34,12 +34,13 @@ else
 endif
 
 example_conf = '''
-    simple.yaml
-    installed.yaml
-    mnc3.yaml
+    sample.yaml
+    310014.yaml
     csfb.yaml
     volte.yaml
+    minimal.yaml
     srslte.yaml
+    sample.yaml
 '''.split()
 
 foreach file : example_conf

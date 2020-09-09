@@ -39,17 +39,18 @@ This removes all existing cloud users and allows only root user and sets a passw
 
 ```
 $ apt update && apt upgrade -y && apt install -y mysql-server tcpdump screen ntp ntpdate git-core dkms gcc flex bison libmysqlclient-dev make \
-libssl-dev libcurl4-openssl-dev libxml2-dev libpcre3-dev bash-completion g++ autoconf rtpproxy libmnl-dev libsctp-dev ipsec-tools
+libssl-dev libcurl4-openssl-dev libxml2-dev libpcre3-dev bash-completion g++ autoconf rtpproxy libmnl-dev libsctp-dev ipsec-tools libradcli-dev \
+libradcli4
 ```
 
-#### 4. Clone Kamailio repository and checkout 5.2 version of repository
+#### 4. Clone Kamailio repository and checkout 5.3 version of repository
 
 ```
 $ mkdir -p /usr/local/src/
 $ cd /usr/local/src/
 $ git clone https://github.com/herlesupreeth/kamailio
 $ cd kamailio
-$ git checkout -b 5.2 origin/5.2
+$ git checkout -b 5.3 origin/5.3
 ```
 
 #### 5. Generate build config files
@@ -98,6 +99,7 @@ modules_configured:=1
 
 ```
 $ cd /usr/local/src/kamailio
+$ export RADCLI=1
 $ make Q=0 all | tee make_all.txt
 $ make install | tee make_install.txt
 $ ldconfig
@@ -350,6 +352,10 @@ Save and exit
 
 - Now try calling from either phone
 
+
+Upon completion of this test, set "Receive incoming calls" option to disabled state and set "Use SIP calling" to "Only for SIP calls"
+{: .notice--warning}
+
 #### 13. Create new mysql database for pcscf, scscf and icscf, populate databases and grant permissions to respective users identified by a password
 
 ```
@@ -372,7 +378,7 @@ $ mysql -u root -p scscf < standard-create.sql
 $ mysql -u root -p scscf < presence-create.sql
 $ mysql -u root -p scscf < ims_usrloc_scscf-create.sql
 $ mysql -u root -p scscf < ims_dialog-create.sql
-$ mysql -u root -p scscf < ims_charging_create.sql
+$ mysql -u root -p scscf < ims_charging-create.sql
 
 $ cd /usr/local/src/kamailio/misc/examples/ims/icscf
 $ mysql -u root -p icscf < icscf.sql
@@ -660,7 +666,7 @@ $ cp /etc/rtpengine/rtpengine.sample.conf /etc/rtpengine/rtpengine.conf
 Edit this file as follows under **[rtpengine]**:
 
 ```
-interface = 10.4.128.21!172.24.15.30
+interface = 10.4.128.21
 ```
 
 Port on which rtpengine binds i.e. listen_ng parameter is udp port 2223. This should be updated in `kamailio_pcscf.cfg` file at **modparam(rtpengine ...)**
@@ -695,10 +701,10 @@ Second instance of RTPENGINE can be run as follows (Optional)
 $ iptables -I rtpengine -p udp -j RTPENGINE --id 1
 $ ip6tables -I INPUT -p udp -j RTPENGINE --id 1
 $ echo 'del 1' > /proc/rtpengine/control
-$ /usr/sbin/rtpengine --table=1 --interface=10.4.128.21!172.24.15.30 --listen-ng=127.0.0.1:2224 --tos=184 --pidfile=ngcp-rtpengine-daemon2.pid --no-fallback --foreground
+$ /usr/sbin/rtpengine --table=1 --interface=10.4.128.21 --listen-ng=127.0.0.1:2224 --tos=184 --pidfile=ngcp-rtpengine-daemon2.pid --no-fallback --foreground
 ```
 
-#### 17. Running I-CSCF, P-CSCF and S-CSCF as separate `systemctl` process
+#### 17. Running I-CSCF, P-CSCF and S-CSCF as separate process
 
 First, stop the default kamailio SIP server
 
@@ -708,74 +714,23 @@ $ systemctl disable kamailio
 $ systemctl mask kamailio
 ```
 
-Copy the init file each of the process you need
+Run all the process as root and NOT sudo
+{: .notice--info}
+
 
 ```
-$ cp /etc/init.d/kamailio /etc/init.d/kamailio_icscf
-$ cp /etc/init.d/kamailio /etc/init.d/kamailio_pcscf
-$ cp /etc/init.d/kamailio /etc/init.d/kamailio_scscf
-```
-
-Changes required in `/etc/init.d/kamailio_icscf`
-
-```
-PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin
-NAME="kamailio_icscf"
-CFGFILE=/etc/$NAME/kamailio_icscf.cfg
-```
-
-Changes required in `/etc/init.d/kamailio_pcscf`
-
-```
-PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin
-NAME="kamailio_pcscf"
-CFGFILE=/etc/$NAME/kamailio_pcscf.cfg
-```
-
-Changes required in `/etc/init.d/kamailio_scscf`
-
-```
-PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin
-NAME="kamailio_scscf"
-CFGFILE=/etc/$NAME/kamailio_scscf.cfg
+$ mkdir -p /var/run/kamailio_pcscf
+$ kamailio -f /etc/kamailio_pcscf/kamailio_pcscf.cfg -P /kamailio_pcscf.pid -DD -E -e
 ```
 
 ```
-$ cd /etc/default/
-$ cp kamailio kamailio_icscf
-$ cp kamailio kamailio_pcscf
-$ cp kamailio kamailio_scscf
+$ mkdir -p /var/run/kamailio_scscf
+$ kamailio -f /etc/kamailio_scscf/kamailio_scscf.cfg -P /kamailio_scscf.pid -DD -E -e
 ```
 
-Changes required in `/etc/default/kamailio_icscf`
-
 ```
-CFGFILE=/etc/kamailio_icscf/kamailio_icscf.cfg
-
-RUN_KAMAILIO=yes
-```
-
-Changes required in `/etc/default/kamailio_pcscf`
-
-```
-CFGFILE=/etc/kamailio_pcscf/kamailio_pcscf.cfg
-
-RUN_KAMAILIO=yes
-```
-
-Changes required in `/etc/default/kamailio_scscf`
-
-```
-CFGFILE=/etc/kamailio_scscf/kamailio_scscf.cfg
-
-RUN_KAMAILIO=yes
-```
-
-Finally,
-
-```
-$ systemctl daemon-reload
-$ systemctl start kamailio_icscf kamailio_pcscf kamailio_scscf
+$ mkdir -p /var/run/kamailio_icscf
+$ kamailio -f /etc/kamailio_icscf/kamailio_icscf.cfg -P /kamailio_icscf.pid -DD -E -e
 ```
 
 #### 18. Install Open5GS in the same machine as Kamailio IMS - Install Open5GS from source
@@ -784,9 +739,6 @@ Please refer to instructions at [https://open5gs.org/open5gs/docs/guide/02-build
 
 If you are using OpenStack, installing Open5GS and Kamailio IMS on the same machine is very important because the **Framed-IP-Address** in the AAR request via Rx interface takes received IP address and port in ims_qos module, hence, if the Open5GS is on a separate VM/machine, the IP and port received in received_ip and received_port values seen by Kamailio IMS will be the NATed IP of the Open5GS machine resulting in failing of AAR request.
 {: .notice--danger}
-
-I made some modifications in order to force UE to PS domain attach and use IPv4. You can refer to the **hacks** branch of [https://github.com/herlesupreeth/open5gs](https://github.com/herlesupreeth/open5gs)
-{: .notice--info}
 
 Modify below mentioned parts of configuration files in addition to **Configure Open5GS** section. For reference, look at the configuration files at [https://github.com/herlesupreeth/Open5gs_Config](https://github.com/herlesupreeth/Open5gs_Config)
 {: .notice--warning}
@@ -1143,16 +1095,17 @@ Enter:
 Identity = 001010123456791@ims.mnc001.mcc001.3gppnetwork.org
 Secret Key = 8baf473f2f8fd09487cccbd7097c6862 (Ki value as in Open5GS HSS database)
 Authentication Schemes - All
-Default = Digest
+Default = Digest-AKAv1-MD5
 AMF = 8000 (As in Open5GS HSS database)
 OP = 11111111111111111111111111111111 (As in Open5GS HSS database)
-SQN = 000000021090 (As in Open5GS HSS database, better to disable SQN check in USIM rather than syncing between Open5GS HSS and FoHSS)
+SQN = 000000021090 (SQN value as in Open5GS HSS database)
 Click Save
 
 Create and Associate IMPI to IMPU
 Click Create & Bind new IMPU
 Enter:
 Identity = sip:001010123456791@ims.mnc001.mcc001.3gppnetwork.org
+Barring = Yes
 Service Profile = default_sp
 Charging-Info Set = default_charging_set
 IMPU Type = Public_User_Identity
@@ -1203,25 +1156,6 @@ Associate IMPI(s) to IMPU
 IMPI Identity = 001011234567891@ims.mnc001.mcc001.3gppnetwork.org
 Click Add
 
-3. sip:0198765432100@ims.mnc001.mcc001.3gppnetwork.org
-
-Public User Identity -IMPU-
-Identity = sip:0198765432100@ims.mnc001.mcc001.3gppnetwork.org
-Service Profile = default_sp
-Charging-Info Set = default_charging_set
-Can Register = Yes
-IMPU Type = Public_User_Identity
-Click Save
-
-Add Visited Network to IMPU
-Enter:
-Visited Network = ims.mnc001.mcc001.3gppnetwork.org
-Click Add
-
-Associate IMPI(s) to IMPU
-IMPI Identity = 001011234567891@ims.mnc001.mcc001.3gppnetwork.org
-Click Add
-
 And, finally add these IMPUs as implicit set of IMSI derived IMPU in HSS i.e sip:001011234567891@ims.mnc001.mcc001.3gppnetwork.org as follows:
 
 1. Goto to IMPU sip:001011234567891@ims.mnc001.mcc001.3gppnetwork.org
@@ -1253,7 +1187,9 @@ $ ip r add 10.4.128.21/32 via 172.24.15.30
 #### 23. USIM and UE settings
 
 - Make sure to disable SQN check in Sysmocom SIM cards using sysmo-usim-tool tool [https://github.com/herlesupreeth/sysmo-usim-tool](https://github.com/herlesupreeth/sysmo-usim-tool)
-- Tested with OnePlus 5 - With modfication to enable force IMS registration is a must or else UE will not even attempt to connect to P-CSCF. Need to apply the fix back after each update.  [https://forum.xda-developers.com/oneplus-5t/how-to/guide-volte-vowifi-german-carriers-t3817542](https://forum.xda-developers.com/oneplus-5t/how-to/guide-volte-vowifi-german-carriers-t3817542)
+- Tested with OnePlus 5 with following methods (Official Google method is the recommended method to prevent damage to phone)
+  - (Official Google method) - Please follow the instructions in the following link [@herlesupreeth/CoIMS_Wiki](https://github.com/herlesupreeth/CoIMS_Wiki) to force enable VoLTE using Carrier Privileges
+  - (Risky method) With modfication to enable force IMS registration is a must or else UE will not even attempt to connect to P-CSCF. Need to apply the fix back after each update.  [https://forum.xda-developers.com/oneplus-5t/how-to/guide-volte-vowifi-german-carriers-t3817542](https://forum.xda-developers.com/oneplus-5t/how-to/guide-volte-vowifi-german-carriers-t3817542)
 
 #### 24. Start IMS components and FoHSS followed by Open5GS and eNB, then try connecting the phones
 
@@ -1261,12 +1197,14 @@ $ ip r add 10.4.128.21/32 via 172.24.15.30
 
 Assuming IMSI of the user1 as 001010123456791 and MSISDN is 0198765432100 and IMSI of the user2 as 001010123456792 and MSISDN is 0298765432100. Try calling user2 from user1 by dialing its MSISDN ie. 0298765432100
 
+- You can see the sample traffic.  -- [[volte.pcapng]]({{ site.url }}{{ site.baseurl }}/assets/pcapng/volte.pcapng).
+
 #### 26. For debugging
 
 Debug using wireshark at Open5GS machine and following wireshark display filter
 
 ```
-s1ap || gtpv2 || diameter || diameter.3gpp || sip
+s1ap || gtpv2 || pfcp || diameter || diameter.3gpp || sip
 ```
 
 Also,
@@ -1275,4 +1213,6 @@ Debugging Diameter messages between PCRF and P-CSCF in Wireshark if the TCP/SCTP
 
 Open Wireshark --> Preferences --> Protocols --> Diameter --> Change to whatever ports are being used
 
+
+#### Appendix
 

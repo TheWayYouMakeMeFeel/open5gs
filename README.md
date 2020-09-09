@@ -1,3 +1,25 @@
+## Sponsors
+
+If you find Open5GS useful for work, please consider supporting this Open Source project by [Becoming a sponsor](https://github.com/sponsors/acetcom). To manage the funding transactions transparently, you can donate through [OpenCollective](https://opencollective.com/open5gs).
+
+#### Thanks to sponsors!
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.auctionsoftware.com/" target="_blank">
+          <img width="222px" src="https://open5gs.org/assets/img/asLogonew.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.accessparks.com/" target="_blank">
+          <img width="222px" src="https://open5gs.org/assets/img/AccessParks.png">
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
 ## Documentation
 
 If you don't understand something about Open5GS, the [https://open5gs.org/open5gs/docs/](https://open5gs.org/open5gs/docs/) is a great place to look for answers.
@@ -12,15 +34,8 @@ Voice and text chat available in Open5GS's [Discord](https://discordapp.com/) wo
 
 ## Contributing
 
-Open5GS is a pure/classic FOSS project, open to contributions from anyone.
-
-[Pull requests](https://github.com/open5gs/open5gs/pulls) are always welcome, and I appreciates any help the community can give to help make Open5GS better.
-
-Do you want to be a committer? Please [send me an email](mailto:acetcom@gmail.com). You will be added as a committer to this project. However, if someone consistently causes difficulties with these source repositories due to poor behavior or other serious problems then commit access may be revoked.
+If you're contributing through a pull request to Open5GS project on GitHub, please read the [Contributor License Agreement](https://open5gs.org/open5gs/cla/) in advance.
 
 ## License
 
 Open5GS source files are made available under the terms of the GNU Affero General Public License (GNU AGPLv3).
-
-When you contribute code for Open5GS, the same license applies.
-

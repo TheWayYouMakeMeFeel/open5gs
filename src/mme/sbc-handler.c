@@ -35,7 +35,7 @@ void sbc_handle_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
             for (i = 0, flag = 0; i < enb->num_of_supported_ta_list; i++) {
                 for (j = 0; j < sbc_pws->no_of_tai; j++) {
                     if (!memcmp(&enb->supported_ta_list[i],
-                                &sbc_pws->tai[j], sizeof(ogs_tai_t)))
+                                &sbc_pws->tai[j], sizeof(ogs_eps_tai_t)))
                         flag = 1;
 
                     if (flag) break;
@@ -46,7 +46,7 @@ void sbc_handle_write_replace_warning_request(sbc_pws_data_t *sbc_pws)
             flag = 1;
 
         if (flag) {
-            /* Buidl S1AP Write Replace Warning Request message */
+            /* Build S1AP Write Replace Warning Request message */
             s1apbuf = s1ap_build_write_replace_warning_request(sbc_pws);
             ogs_expect_or_return(s1apbuf);
 
@@ -70,7 +70,7 @@ void sbc_handle_stop_warning_request(sbc_pws_data_t *sbc_pws)
             for (i = 0, flag = 0; i < enb->num_of_supported_ta_list; i++) {
                 for (j = 0; j < sbc_pws->no_of_tai; j++) {
                     if (!memcmp(&enb->supported_ta_list[i],
-                                &sbc_pws->tai[j], sizeof(ogs_tai_t)))
+                                &sbc_pws->tai[j], sizeof(ogs_eps_tai_t)))
                         flag = 1;
 
                     if (flag) break;
@@ -81,7 +81,7 @@ void sbc_handle_stop_warning_request(sbc_pws_data_t *sbc_pws)
             flag = 1;
 
         if (flag) {
-            /* Buidl S1AP Kill request message */
+            /* Build S1AP Kill request message */
             s1apbuf = s1ap_build_kill_request(sbc_pws);
             ogs_expect_or_return(s1apbuf);
 

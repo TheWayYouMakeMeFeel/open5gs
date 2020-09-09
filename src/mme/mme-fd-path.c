@@ -157,7 +157,8 @@ void mme_s6a_send_air(mme_ue_t *mme_ue,
     ogs_assert(ret == 0);
 
     /* Set Vendor-Specific-Application-Id AVP */
-    ret = ogs_diam_message_vendor_specific_appid_set(req, OGS_DIAM_S6A_APPLICATION_ID);
+    ret = ogs_diam_message_vendor_specific_appid_set(
+            req, OGS_DIAM_S6A_APPLICATION_ID);
     ogs_assert(ret == 0);
     
     ret = clock_gettime(CLOCK_REALTIME, &sess_data->ts);
@@ -226,6 +227,7 @@ static void mme_s6a_aia_cb(void *data, struct msg **msg)
     s6abuf_len = sizeof(ogs_diam_s6a_message_t);
     ogs_assert(s6abuf_len < 8192);
     s6abuf = ogs_pkbuf_alloc(NULL, s6abuf_len);
+    ogs_assert(s6abuf);
     ogs_pkbuf_put(s6abuf, s6abuf_len);
     s6a_message = (ogs_diam_s6a_message_t *)s6abuf->data;
     ogs_assert(s6a_message);
@@ -294,7 +296,16 @@ static void mme_s6a_aia_cb(void *data, struct msg **msg)
     }
 
     if (s6a_message->result_code != ER_DIAMETER_SUCCESS) {
-        ogs_warn("ERROR DIAMETER Result Code(%d)", s6a_message->result_code);
+        if (s6a_message->err)
+            ogs_info("    Result Code: %d", s6a_message->result_code);
+        else if (s6a_message->exp_err)
+            ogs_info("    Experimental Result Code: %d",
+                    s6a_message->result_code);
+        else {
+            ogs_fatal("ERROR DIAMETER Result Code(%d)",
+                    s6a_message->result_code);
+            ogs_assert_if_reached();
+        }
         goto out;
     }
 
@@ -373,13 +384,13 @@ out:
         ogs_assert(e);
         e->mme_ue = mme_ue;
         e->pkbuf = s6abuf;
-        rv = ogs_queue_push(mme_self()->queue, e);
+        rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {
             ogs_error("ogs_queue_push() failed:%d", (int)rv);
             ogs_pkbuf_free(e->pkbuf);
             mme_event_free(e);
         } else {
-            ogs_pollset_notify(mme_self()->pollset);
+            ogs_pollset_notify(ogs_app()->pollset);
         }
     }
 
@@ -493,7 +504,7 @@ void mme_s6a_send_ulr(mme_ue_t *mme_ue)
     ogs_assert(ret == 0);
 
     /* Set the Terminal-Information AVP */
-    if (mme_ue->imeisv_presence) {
+    if (mme_ue->imeisv_len) {
         ret = fd_msg_avp_new(ogs_diam_s6a_terminal_information, 0, &avp);
         ogs_assert(ret == 0);
 
@@ -604,7 +615,7 @@ static void mme_s6a_ula_cb(void *data, struct msg **msg)
     ogs_pkbuf_t *s6abuf = NULL;
     ogs_diam_s6a_message_t *s6a_message = NULL;
     ogs_diam_s6a_ula_message_t *ula_message = NULL;
-    ogs_diam_s6a_subscription_data_t *subscription_data = NULL;
+    ogs_subscription_data_t *subscription_data = NULL;
     uint16_t s6abuf_len = 0;
 
     ogs_debug("[MME] Update-Location-Answer");
@@ -628,6 +639,7 @@ static void mme_s6a_ula_cb(void *data, struct msg **msg)
     s6abuf_len = sizeof(ogs_diam_s6a_message_t);
     ogs_assert(s6abuf_len < 8192);
     s6abuf = ogs_pkbuf_alloc(NULL, s6abuf_len);
+    ogs_assert(s6abuf);
     ogs_pkbuf_put(s6abuf, s6abuf_len);
     s6a_message = (ogs_diam_s6a_message_t *)s6abuf->data;
     ogs_assert(s6a_message);
@@ -711,10 +723,51 @@ static void mme_s6a_ula_cb(void *data, struct msg **msg)
     ret = fd_msg_search_avp(*msg, ogs_diam_s6a_subscription_data, &avp);
     ogs_assert(ret == 0);
     if (avp) {
+
+        /*
+         * TS29.328
+         * 6.3.2 MSISDN AVP
+         *
+         * The MSISDN AVP is of type OctetString.
+         * This AVP contains an MSISDN, in international number format
+         * as described in ITU-T Rec E.164 [8], encoded as a TBCD-string,
+         * i.e. digits from 0 through 9 are encoded 0000 to 1001;
+         * 1111 is used as a filler when there is an odd number of digits;
+         * bits 8 to 5 of octet n encode digit 2n;
+         * bits 4 to 1 of octet n encode digit 2(n-1)+1.
+         */
+        ret = fd_avp_search_avp(avp, ogs_diam_s6a_msisdn, &avpch1);
+        ogs_assert(ret == 0);
+        if (avpch1) {
+            ret = fd_msg_avp_hdr(avpch1, &hdr);
+            ogs_assert(ret == 0);
+            if (hdr->avp_value->os.len) {
+                mme_ue->msisdn_len = hdr->avp_value->os.len;
+                memcpy(mme_ue->msisdn,
+                    hdr->avp_value->os.data, mme_ue->msisdn_len);
+                ogs_buffer_to_bcd(mme_ue->msisdn,
+                        mme_ue->msisdn_len, mme_ue->msisdn_bcd);
+            }
+        }
+
+        ret = fd_avp_search_avp(avp, ogs_diam_s6a_a_msisdn, &avpch1);
+        ogs_assert(ret == 0);
+        if (avpch1) {
+            ret = fd_msg_avp_hdr(avpch1, &hdr);
+            ogs_assert(ret == 0);
+            if (hdr->avp_value->os.len) {
+                mme_ue->a_msisdn_len = hdr->avp_value->os.len;
+                memcpy(mme_ue->a_msisdn,
+                    hdr->avp_value->os.data, mme_ue->a_msisdn_len);
+                ogs_buffer_to_bcd(mme_ue->a_msisdn,
+                        mme_ue->a_msisdn_len, mme_ue->a_msisdn_bcd);
+            }
+        }
+
         ret = fd_avp_search_avp(avp, ogs_diam_s6a_ambr, &avpch1);
         ogs_assert(ret == 0);
         if (avpch1) {
-            ret = fd_avp_search_avp( avpch1,
+            ret = fd_avp_search_avp(avpch1,
                     ogs_diam_s6a_max_bandwidth_ul, &avpch2);
             ogs_assert(ret == 0);
             if (avpch2) {
@@ -752,7 +805,7 @@ static void mme_s6a_ula_cb(void *data, struct msg **msg)
             subscription_data->subscribed_rau_tau_timer = hdr->avp_value->i32;
         } else {
             subscription_data->subscribed_rau_tau_timer =
-                OGS_DIAM_S6A_RAU_TAU_DEFAULT_TIME;
+                OGS_RAU_TAU_DEFAULT_TIME;
         }
 
         ret = fd_avp_search_avp(avp,
@@ -947,13 +1000,13 @@ static void mme_s6a_ula_cb(void *data, struct msg **msg)
                                 if (addr.ogs_sa_family == AF_INET)
                                 {
                                     pdn->pgw_ip.ipv4 = 1;
-                                    pdn->pgw_ip.both.addr = 
+                                    pdn->pgw_ip.addr =
                                         addr.sin.sin_addr.s_addr;
                                 }
                                 else if (addr.ogs_sa_family == AF_INET6)
                                 {
                                     pdn->pgw_ip.ipv6 = 1;
-                                    memcpy(pdn->pgw_ip.both.addr6,
+                                    memcpy(pdn->pgw_ip.addr6,
                                         addr.sin6.sin6_addr.s6_addr,
                                         OGS_IPV6_LEN);
                                 }
@@ -1028,13 +1081,13 @@ static void mme_s6a_ula_cb(void *data, struct msg **msg)
         ogs_assert(e);
         e->mme_ue = mme_ue;
         e->pkbuf = s6abuf;
-        rv = ogs_queue_push(mme_self()->queue, e);
+        rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {
             ogs_error("ogs_queue_push() failed:%d", (int)rv);
             ogs_pkbuf_free(e->pkbuf);
             mme_event_free(e);
         } else {
-            ogs_pollset_notify(mme_self()->pollset);
+            ogs_pollset_notify(ogs_app()->pollset);
         }
     }
 

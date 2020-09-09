@@ -19,6 +19,7 @@
 
 #include "mme-context.h"
 #include "mme-sm.h"
+#include "mme-timer.h"
 
 #include "s1ap-handler.h"
 #include "s1ap-path.h"
@@ -36,11 +37,14 @@
 /* 3GPP TS 29.272 Annex A; Table !.a:
  * Mapping from S6a error codes to NAS Cause Codes */
 static uint8_t emm_cause_from_diameter(
-        const uint32_t *dia_err, const uint32_t *dia_exp_err)
+        mme_ue_t *mme_ue, const uint32_t *dia_err, const uint32_t *dia_exp_err)
 {
+    ogs_assert(mme_ue);
+
     if (dia_exp_err) {
         switch (*dia_exp_err) {
         case OGS_DIAM_S6A_ERROR_USER_UNKNOWN:                   /* 5001 */
+            ogs_info("[%s] User Unknown in HSS DB", mme_ue->imsi_bcd);
             return EMM_CAUSE_EPS_SERVICES_AND_NON_EPS_SERVICES_NOT_ALLOWED;
         case OGS_DIAM_S6A_ERROR_UNKNOWN_EPS_SUBSCRIPTION:       /* 5420 */
             /* FIXME: Error diagnostic? */
@@ -67,7 +71,6 @@ static uint8_t emm_cause_from_diameter(
         case ER_DIAMETER_MISSING_AVP:                           /* 5005 */
         case ER_DIAMETER_RESOURCES_EXCEEDED:                    /* 5006 */
         case ER_DIAMETER_AVP_OCCURS_TOO_MANY_TIMES:             /* 5009 */
-        default: /* FIXME: only permanent */
             return EMM_CAUSE_NETWORK_FAILURE;
         }
     }
@@ -104,11 +107,11 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
     mme_enb_t *enb = NULL;
     uint16_t max_num_of_ostreams = 0;
 
-    s1ap_message_t s1ap_message;
+    ogs_s1ap_message_t s1ap_message;
     ogs_pkbuf_t *pkbuf = NULL;
     int rc;
 
-    ogs_nas_message_t nas_message;
+    ogs_nas_eps_message_t nas_message;
     enb_ue_t *enb_ue = NULL;
     mme_ue_t *mme_ue = NULL;
 
@@ -163,15 +166,15 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         addr = e->addr;
         ogs_assert(addr);
 
-        ogs_info("eNB-S1 accepted[%s] in master_sm module", 
-            OGS_ADDR(addr, buf));
-                
+        ogs_info("eNB-S1 accepted[%s] in master_sm module",
+        OGS_ADDR(addr, buf));
+
         enb = mme_enb_find_by_addr(addr);
         if (!enb) {
             enb = mme_enb_add(sock, addr);
             ogs_assert(enb);
         } else {
-            ogs_warn("eNB context duplicated with IP-address [%s]!!!", 
+            ogs_warn("eNB context duplicated with IP-address [%s]!!!",
                     OGS_ADDR(addr, buf));
             ogs_sock_destroy(sock);
             ogs_warn("S1 Socket Closed");
@@ -242,7 +245,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
             e->s1ap_message = &s1ap_message;
             ogs_fsm_dispatch(&enb->sm, e);
         } else {
-            ogs_warn("Cannot process S1AP message");
+            ogs_warn("Cannot decode S1AP message");
             s1ap_send_error_indication(
                     enb, NULL, NULL, S1AP_Cause_PR_protocol, 
                     S1AP_CauseProtocol_abstract_syntax_error_falsely_constructed_message);
@@ -255,11 +258,29 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
     case MME_EVT_S1AP_TIMER:
         enb_ue = e->enb_ue;
         ogs_assert(enb_ue);
-        enb = e->enb;
-        ogs_assert(enb);
-        ogs_assert(OGS_FSM_STATE(&enb->sm));
 
-        ogs_fsm_dispatch(&enb->sm, e);
+        switch (e->timer_id) {
+        case MME_TIMER_S1_DELAYED_SEND:
+            enb = e->enb;
+            ogs_assert(enb);
+            pkbuf = e->pkbuf;
+            ogs_assert(pkbuf);
+
+            ogs_expect(OGS_OK == s1ap_send_to_enb_ue(enb_ue, pkbuf));
+            ogs_timer_delete(e->timer);
+            break;
+        case MME_TIMER_S1_HOLDING:
+            ogs_warn("Implicit S1 release");
+            ogs_warn("    ENB_UE_S1AP_ID[%d] MME_UE_S1AP_ID[%d]",
+                  enb_ue->enb_ue_s1ap_id,
+                  enb_ue->mme_ue_s1ap_id);
+            s1ap_handle_ue_context_release_action(enb_ue);
+            break;
+        default:
+            ogs_error("Unknown timer[%s:%d]",
+                    mme_timer_get_name(e->timer_id), e->timer_id);
+            break;
+        }
         break;
 
     case MME_EVT_EMM_MESSAGE:
@@ -267,6 +288,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         ogs_assert(enb_ue);
         pkbuf = e->pkbuf;
         ogs_assert(pkbuf);
+
         if (ogs_nas_emm_decode(&nas_message, pkbuf) != OGS_OK) {
             ogs_error("ogs_nas_emm_decode() failed");
             ogs_pkbuf_free(pkbuf);
@@ -286,14 +308,14 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
                  * TRACKING_AREA_UPDATE_REQUEST message
                  *
                  * Now, We will check the MAC in the NAS message*/
-                nas_security_header_type_t h;
+                ogs_nas_security_header_type_t h;
                 h.type = e->nas_type;
                 if (h.integrity_protected) {
                     /* Decryption was performed in S1AP handler.
                      * So, we disabled 'ciphered' 
                      * not to decrypt NAS message */
                     h.ciphered = 0;
-                    if (nas_security_decode(mme_ue, h, pkbuf) != OGS_OK) {
+                    if (nas_eps_security_decode(mme_ue, h, pkbuf) != OGS_OK) {
                         ogs_error("nas_security_decode() failed");
                         ogs_pkbuf_free(pkbuf);
                         return;
@@ -304,12 +326,22 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
             /* If NAS(mme_ue_t) has already been associated with
              * older S1(enb_ue_t) context */
             if (ECM_CONNECTED(mme_ue)) {
-               /* Implcit S1 release */
-                ogs_debug("Implicit S1 release");
+                /* Previous S1(enb_ue_t) context the holding timer(30secs)
+                 * is started.
+                 * Newly associated S1(enb_ue_t) context holding timer
+                 * is stopped. */
+                ogs_debug("Start S1 Holding Timer");
                 ogs_debug("    ENB_UE_S1AP_ID[%d] MME_UE_S1AP_ID[%d]",
-                      mme_ue->enb_ue->enb_ue_s1ap_id,
-                      mme_ue->enb_ue->mme_ue_s1ap_id);
-                enb_ue_remove(mme_ue->enb_ue);
+                        mme_ue->enb_ue->enb_ue_s1ap_id,
+                        mme_ue->enb_ue->mme_ue_s1ap_id);
+
+                /* De-associate S1 with NAS/EMM */
+                enb_ue_deassociate(mme_ue->enb_ue);
+
+                s1ap_send_ue_context_release_command(mme_ue->enb_ue,
+                        S1AP_Cause_PR_nas, S1AP_CauseNas_normal_release,
+                        S1AP_UE_CTX_REL_S1_CONTEXT_REMOVE, 0);
+
             }
             mme_ue_associate_enb_ue(mme_ue, enb_ue);
         }
@@ -414,11 +446,12 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
              * However, e.g. 5004 has different meaning
              * if used in result-code than in experimental-result-code */
             uint8_t emm_cause = emm_cause_from_diameter(
-                    s6a_message->err, s6a_message->exp_err);
+                    mme_ue, s6a_message->err, s6a_message->exp_err);
 
-            nas_send_attach_reject(mme_ue,
+            ogs_info("[%s] Attach reject [EMM_CAUSE:%d]",
+                    mme_ue->imsi_bcd, emm_cause);
+            nas_eps_send_attach_reject(mme_ue,
                 emm_cause, ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
-            ogs_warn("EMM_CAUSE : %d", emm_cause);
 
             enb_ue = mme_ue->enb_ue;
             ogs_assert(enb_ue);
@@ -440,11 +473,11 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
 
             if (OGS_FSM_CHECK(&mme_ue->sm, emm_state_initial_context_setup)) {
                 if (mme_ue->nas_eps.type == MME_EPS_TYPE_ATTACH_REQUEST) {
-                    rv = nas_send_emm_to_esm(mme_ue,
+                    rv = nas_eps_send_emm_to_esm(mme_ue,
                             &mme_ue->pdn_connectivity_request);
                     if (rv != OGS_OK) {
-                        ogs_error("nas_send_emm_to_esm() failed");
-                        nas_send_attach_reject(mme_ue,
+                        ogs_error("nas_eps_send_emm_to_esm() failed");
+                        nas_eps_send_attach_reject(mme_ue,
                             EMM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED,
                             ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED);
                     }
@@ -455,7 +488,7 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
             }
             else if (OGS_FSM_CHECK(&mme_ue->sm, emm_state_registered)) {
                 if (mme_ue->nas_eps.type == MME_EPS_TYPE_TAU_REQUEST) {
-                    nas_send_tau_accept(mme_ue,
+                    nas_eps_send_tau_accept(mme_ue,
                             S1AP_ProcedureCode_id_InitialContextSetup);
                 } else if (mme_ue->nas_eps.type ==
                     MME_EPS_TYPE_SERVICE_REQUEST) {
@@ -477,8 +510,12 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
     case MME_EVT_S11_MESSAGE:
         pkbuf = e->pkbuf;
         ogs_assert(pkbuf);
-        rv = ogs_gtp_parse_msg(&gtp_message, pkbuf);
-        ogs_assert(rv == OGS_OK);
+
+        if (ogs_gtp_parse_msg(&gtp_message, pkbuf) != OGS_OK) {
+            ogs_error("ogs_gtp_parse_msg() failed");
+            ogs_pkbuf_free(pkbuf);
+            break;
+        }
 
         /*
          * 5.5.2 in spec 29.274
@@ -530,6 +567,12 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
         }
 
         switch (gtp_message.h.type) {
+        case OGS_GTP_ECHO_REQUEST_TYPE:
+            mme_s11_handle_echo_request(xact, &gtp_message.echo_request);
+            break;
+        case OGS_GTP_ECHO_RESPONSE_TYPE:
+            mme_s11_handle_echo_response(xact, &gtp_message.echo_response);
+            break;
         case OGS_GTP_CREATE_SESSION_RESPONSE_TYPE:
             mme_s11_handle_create_session_response(
                 xact, mme_ue, &gtp_message.create_session_response);
@@ -559,6 +602,12 @@ void mme_state_operational(ogs_fsm_t *s, mme_event_t *e)
                 xact, mme_ue, &gtp_message.release_access_bearers_response);
             break;
         case OGS_GTP_DOWNLINK_DATA_NOTIFICATION_TYPE:
+            if (!mme_ue) {
+                if (gtp_message.h.teid_presence)
+                    ogs_warn("No Context : TEID[%d]", gtp_message.h.teid);
+                else
+                    ogs_warn("No Context : No TEID");
+            }
             mme_s11_handle_downlink_data_notification(
                 xact, mme_ue, &gtp_message.downlink_data_notification);
 

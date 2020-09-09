@@ -34,7 +34,20 @@ void *ogs_hex_to_ascii(void *in, int in_len, void *out, int out_len);
 void *ogs_uint64_to_buffer(uint64_t num, int size, void *buffer);
 uint64_t ogs_buffer_to_uint64(void *buffer, int size);
 void *ogs_bcd_to_buffer(const char *in, void *out, int *out_len);
+void *ogs_bcd_to_buffer_reverse_order(const char *in, void *out, int *out_len);
 void *ogs_buffer_to_bcd(uint8_t *in, int in_len, void *out);
+
+char ogs_from_hex(char ch);
+
+char *ogs_uint24_to_string(ogs_uint24_t x);
+char *ogs_uint28_to_string(uint32_t x);
+char *ogs_uint32_to_string(uint32_t x);
+char *ogs_uint36_to_string(uint64_t x);
+
+ogs_uint24_t ogs_uint24_from_string(char *str);
+uint32_t ogs_uint28_from_string(char *str);
+uint32_t ogs_uint32_from_string(char *str);
+uint64_t ogs_uint36_from_string(char *str);
 
 #ifdef __cplusplus
 }

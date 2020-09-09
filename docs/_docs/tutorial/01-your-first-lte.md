@@ -35,7 +35,7 @@ If you want to use GPS antenna, setup your devices in the following order:
 {: .notice--warning}
 
 Then, setup the USRP B200/B210 as below:
-  1. **4x Small Antennas** should be connected to USRP Rx/Tx ports (RF-A/RF-B)
+  1. **Small Antennas** should be connected to USRP Rx/Tx ports (RF-A/RF-B)
   2. USRP powered via power supply or over **USB 3.0**
   3. USRP **USB 3.0** port connected to your PC 
 
@@ -142,13 +142,16 @@ $ sudo apt install cmake libfftw3-dev libmbedtls-dev libboost-program-options-de
 Download and build srsLTE:
 
 ```bash
-➜  git git clone https://github.com/srsLTE/srsLTE.git
-➜  git cd srsLTE
-➜  srsLTE git:(master) ✗ mkdir build
-➜  srsLTE git:(master) ✗ cd build
-➜  build git:(master) ✗ cmake ../
-➜  build git:(master) ✗ make
-➜  build git:(master) ✗ make test
+$ git clone https://github.com/srsLTE/srsLTE.git
+$ cd srsLTE
+$ git checkout release_19_12
+$ git rev-parse HEAD
+d045213fb9cbf98c83c06d7c17197a9dcbfddacf
+$ mkdir build
+$ cd build
+$ cmake ../
+$ make
+$ make test
 ```
 
 #### 3. Open5GS
@@ -172,7 +175,7 @@ The following shows how to install the Web UI of Open5GS.
 ```bash
 $ curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
 $ sudo apt install nodejs
-$ curl -sL http://open5gs.org/static/webui/install | sudo -E bash -
+$ curl -sL https://open5gs.org/open5gs/assets/webui/install | sudo -E bash -
 ```
 
 ### Configuration & Running
@@ -219,32 +222,33 @@ Then proceed as follows:
   3. Fill the IMSI, security context(K, OPc, AMF), and APN of the subscriber.
   4. Click `SAVE` Button
 
-Modify [/etc/open5gs/mme.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/master/configs/open5gs/mme.yaml.in) to set the S1AP/GTP-C IP address, PLMN ID, and TAC
+Modify [install/etc/open5gs/mme.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/master/configs/open5gs/mme.yaml.in) to set the S1AP IP address, PLMN ID, and TAC. 
 
 ```diff
-diff -u mme.yaml.old mme.yaml
---- mme.yaml.old	2018-04-15 18:28:31.000000000 +0900
-+++ mme.yaml	2018-04-15 19:53:10.000000000 +0900
-@@ -14,18 +14,20 @@
+$ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
+--- mme.yaml.old	2020-08-22 12:07:32.755250028 -0400
++++ mme.yaml	2020-08-22 12:08:17.309320211 -0400
+@@ -204,20 +204,20 @@
  mme:
-     freeDiameter: mme.conf
+     freeDiameter: /home/acetcom/Documents/git/open5gs/install/etc/freeDiameter/mme.conf
      s1ap:
+-      addr: 127.0.0.2
 +      addr: 127.0.1.100
      gtpc:
-+      addr: 127.0.1.100
+       addr: 127.0.0.2
      gummei:
        plmn_id:
--        mcc: 001
--        mnc: 01
+-        mcc: 901
+-        mnc: 70
 +        mcc: 310
 +        mnc: 789
        mme_gid: 2
        mme_code: 1
      tai:
        plmn_id:
--        mcc: 001
--        mnc: 01
--      tac: 12345
+-        mcc: 901
+-        mnc: 70
+-      tac: 1
 +        mcc: 310
 +        mnc: 789
 +      tac: 7
@@ -253,34 +257,27 @@ diff -u mme.yaml.old mme.yaml
          ciphering_order : [ EEA0, EEA1, EEA2 ]
 ```
 
-S1AP/GTP-C IP address, PLMN ID, TAC are changed as follows.
-
-```
-S1AP address : 127.0.1.100 - srsENB default value
-GTP-C address : 127.0.1.100 - Use loopback interface
-PLMN ID : MNC(310), MCC(789) - Programmed USIM with a card reader
-TAC : 7 - srsENB default value
-```
-
-
-The GTP-U IP address will be set to 127.0.0.2. To do this, modify [/etc/open5gs/sgw.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/master/configs/open5gs/sgw.yaml.in) to set the GTP-U IP address.  
-
+Modify [install/etc/open5gs/sgwu.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/master/configs/open5gs/sgwu.yaml.in) to set the GTP-U IP address.
 ```diff
-diff -u /etc/open5gs/sgw.yaml.old /etc/open5gs/sgw.yaml
---- sgw.yaml.old	2018-04-15 18:30:25.000000000 +0900
-+++ sgw.yaml	2018-04-15 18:30:30.000000000 +0900
-@@ -14,3 +14,4 @@
-     gtpc:
-       addr: 127.0.0.2
+$ diff -u /etc/open5gs/sgwu.yaml.old /etc/open5gs/sgwu.yaml
+--- sgwu.yaml.old	2020-08-22 12:08:44.782880778 -0400
++++ sgwu.yaml	2020-08-22 12:06:49.809299514 -0400
+@@ -51,7 +51,7 @@
+ #
+ sgwu:
      gtpu:
-+      addr: 127.0.0.2
+-      addr: 10.11.0.6
++      addr: 127.0.0.6
+     pfcp:
+       addr: 127.0.0.6
 ```
+
 
 After changing conf files, please restart Open5GS daemons.
 
 ```bash
-$ sudo systemctl restart open5gs-mmed
-$ sudo systemctl restart open5gs-sgwd
+$ sudo systemctl restart open5gs-mmed.service
+$ sudo systemctl restart open5gs-sgwud.service
 ```
 
 If your phone can connect to internet, you must run the following command in Open5GS-PGW installed host. 
@@ -315,7 +312,7 @@ target     prot opt source               destination
 $ sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
 
 ### Add NAT Rule
-$ sudo iptables -t nat -A POSTROUTING -s 45.45.0.0/16 ! -o ogstun -j MASQUERADE
+$ sudo iptables -t nat -A POSTROUTING -s 10.45.0.0/16 ! -o ogstun -j MASQUERADE
 ```
 
 **Note:** For the first time, it is a good condition if you do not have any rules in the IP/NAT tables. If a program such as docker has already set up a rule, you will need to add a rule differently.
@@ -325,10 +322,10 @@ $ sudo iptables -t nat -A POSTROUTING -s 45.45.0.0/16 ! -o ogstun -j MASQUERADE
 Change back to the srsENB source directory and copy the main config example as well as all additional config files for RR, SIB and DRB.
 
 ```bash
-➜  srsLTE git:(master) ✗ cp srsenb/enb.conf.example srsenb/enb.conf
-➜  srsLTE git:(master) ✗ cp srsenb/rr.conf.example srsenb/rr.conf
-➜  srsLTE git:(master) ✗ cp srsenb/sib.conf.example srsenb/sib.conf
-➜  srsLTE git:(master) ✗ cp srsenb/drb.conf.example srsenb/drb.conf
+$ cp srsenb/enb.conf.example srsenb/enb.conf
+$ cp srsenb/rr.conf.example srsenb/rr.conf
+$ cp srsenb/sib.conf.example srsenb/sib.conf
+$ cp srsenb/drb.conf.example srsenb/drb.conf
 ```
 
 You should check your phone frequency. If your phone does not support Band-3, you should use a different DL EARFCN value.
@@ -383,52 +380,26 @@ If you do not use the GPS-DO, you should use:
 Now, run the srsENB as follows:
 
 ```bash
-➜  srsLTE git:(master) ✗ cd srsenb/
-➜  srsenb git:(master) ✗ sudo ../build/srsenb/src/srsenb ./enb.conf
-linux; GNU C++ version 6.2.0 20161027; Boost_106200; UHD_003.009.005-0-unknow
+$ cd srsenb/
+$ sudo ../build/srsenb/src/srsenb ./enb.conf
+
+Built in Release mode using commit d045213fb on branch HEAD.
 
 ---  Software Radio Systems LTE eNodeB  ---
 
 Reading configuration file ./enb.conf...
--- Loading firmware image: /usr/share/uhd/images/usrp_b200_fw.hex...
-Opening USRP with args: "",master_clock_rate=30.72e6
--- Detected Device: B200
--- Loading FPGA image: /usr/share/uhd/images/usrp_b200_fpga.bin... done
--- Operating over 'USB 2'.
--- Detecting internal GPSDO.... 'No GPSDO found'
--- Initialize CODEC control...
--- Initialize Radio control...
--- Performing register loopback test... pass
--- Performing CODEC loopback test... pass
--- Asking for clock rate 30.720000 MHz...
--- Actually got clock rate 30.720000 MHz.
--- Performing timer loopback test... pass
-Setting frequency: DL=1845.0 Mhz, UL=1750.0 MHz
-Setting Sampling frequency 11.52 MHz
-
-==== eNodeB started ===
-Type <t> to view trace
-```
-If you see the `No GPSDO found`, please exit the program with Ctrl-C.
-And also, if you see the `USB 2`, it will not be working properly.
-
-The following console output is the correct result of srsENB.
-```bash
-linux; GNU C++ version 6.2.0 20161027; Boost_106200; UHD_003.009.005-0-unknow
-
----  Software Radio Systems LTE eNodeB  ---
-
-Reading configuration file ./enb.conf...
-Opening USRP with args: "",master_clock_rate=30.72e6
--- Detected Device: B200
--- Operating over USB 3.
--- Initialize CODEC control...
--- Initialize Radio control...
--- Performing register loopback test... pass
--- Performing CODEC loopback test... pass
--- Asking for clock rate 30.720000 MHz...
--- Actually got clock rate 30.720000 MHz.
--- Performing timer loopback test... pass
+Opening 1 RF devices with 1 RF channels...
+[INFO] [UHD] linux; GNU C++ version 7.4.0; Boost_106501; UHD_3.14.1.1-release
+[INFO] [LOGGING] Fastpath logging disabled at runtime.
+Opening USRP with args: type=b200,master_clock_rate=23.04e6
+[INFO] [B200] Detected Device: B200
+[INFO] [B200] Operating over USB 3.
+[INFO] [B200] Initialize CODEC control...
+[INFO] [B200] Initialize Radio control...
+[INFO] [B200] Performing register loopback test...
+[INFO] [B200] Register loopback test passed
+[INFO] [B200] Asking for clock rate 23.040000 MHz...
+[INFO] [B200] Actually got clock rate 23.040000 MHz.
 Setting frequency: DL=1845.0 Mhz, UL=1750.0 MHz
 Setting Sampling frequency 11.52 MHz
 

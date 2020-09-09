@@ -58,6 +58,7 @@ ogs_pkbuf_t *sgsap_build_location_update_request(mme_ue_t *mme_ue)
     ogs_tlv_add(root, SGSAP_IE_LAI_TYPE, SGSAP_IE_LAI_LEN, 0, &lai);
 
     pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
+    ogs_assert(pkbuf);
     ogs_pkbuf_put_u8(pkbuf, SGSAP_LOCATION_UPDATE_REQUEST);
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN-1);
 
@@ -85,6 +86,7 @@ ogs_pkbuf_t *sgsap_build_tmsi_reallocation_complete(mme_ue_t *mme_ue)
             &mme_ue->nas_mobile_identity_imsi);
 
     pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
+    ogs_assert(pkbuf);
     ogs_pkbuf_put_u8(pkbuf, SGSAP_TMSI_REALLOCATION_COMPLETE);
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN-1);
 
@@ -115,7 +117,7 @@ ogs_pkbuf_t *sgsap_build_detach_indication(mme_ue_t *mme_ue)
     vlr = csmap->vlr;
     ogs_assert(vlr);
 
-    switch (mme_ue->nas_eps.detach.detach_type) {
+    switch (mme_ue->nas_eps.detach.value) {
     /* 0 0 1 : EPS detach */
     case OGS_NAS_DETACH_TYPE_FROM_UE_EPS_DETACH: 
         type = SGSAP_EPS_DETACH_INDICATION;
@@ -128,7 +130,7 @@ ogs_pkbuf_t *sgsap_build_detach_indication(mme_ue_t *mme_ue)
         break;
     case 6: /* 1 1 0 : reserved */
     case 7: /* 1 1 1 : reserved */
-        ogs_warn("Unknown Detach type[%d]", mme_ue->nas_eps.detach.detach_type);
+        ogs_warn("Unknown Detach type[%d]", mme_ue->nas_eps.detach.value);
         break;
     /* 0 1 1 : combined EPS/IMSI detach */
     case OGS_NAS_DETACH_TYPE_FROM_UE_COMBINED_EPS_IMSI_DETACH: 
@@ -161,6 +163,7 @@ ogs_pkbuf_t *sgsap_build_detach_indication(mme_ue_t *mme_ue)
     ogs_debug("    INDICATION[%d]", indication);
 
     pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
+    ogs_assert(pkbuf);
     ogs_pkbuf_put_u8(pkbuf, type);
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN-1);
 
@@ -189,6 +192,7 @@ ogs_pkbuf_t *sgsap_build_mo_csfb_indication(mme_ue_t *mme_ue)
             &mme_ue->nas_mobile_identity_imsi);
 
     pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
+    ogs_assert(pkbuf);
     ogs_pkbuf_put_u8(pkbuf, SGSAP_MO_CSFB_INDICIATION);
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN-1);
 
@@ -219,6 +223,7 @@ ogs_pkbuf_t *sgsap_build_paging_reject(
     ogs_debug("    CAUSE[%d]", sgs_cause);
 
     pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
+    ogs_assert(pkbuf);
     ogs_pkbuf_put_u8(pkbuf, SGSAP_PAGING_REJECT);
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN-1);
 
@@ -253,6 +258,7 @@ ogs_pkbuf_t *sgsap_build_service_request(mme_ue_t *mme_ue, uint8_t emm_mode)
             SGSAP_IE_UE_EMM_MODE_LEN, 0, &emm_mode);
 
     pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
+    ogs_assert(pkbuf);
     ogs_pkbuf_put_u8(pkbuf, SGSAP_SERVICE_REQUEST);
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN-1);
 
@@ -282,6 +288,7 @@ ogs_pkbuf_t *sgsap_build_reset_ack(mme_vlr_t *vlr)
     root = ogs_tlv_add(NULL, SGSAP_IE_MME_NAME_TYPE, mme_name_len, 0, mme_name);
 
     pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
+    ogs_assert(pkbuf);
     ogs_pkbuf_put_u8(pkbuf, SGSAP_RESET_ACK);
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN-1);
 
@@ -293,8 +300,8 @@ ogs_pkbuf_t *sgsap_build_reset_ack(mme_vlr_t *vlr)
     return pkbuf;
 }
 
-ogs_pkbuf_t *sgsap_build_uplink_unidata(
-        mme_ue_t *mme_ue, ogs_nas_message_container_t *nas_message_container)
+ogs_pkbuf_t *sgsap_build_uplink_unidata(mme_ue_t *mme_ue,
+        ogs_nas_eps_message_container_t *nas_message_container)
 {
     mme_csmap_t *csmap = NULL;
     mme_vlr_t *vlr = NULL;
@@ -316,6 +323,7 @@ ogs_pkbuf_t *sgsap_build_uplink_unidata(
             nas_message_container->length, 0, nas_message_container->buffer);
 
     pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
+    ogs_assert(pkbuf);
     ogs_pkbuf_put_u8(pkbuf, SGSAP_UPLINK_UNITDATA);
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN-1);
 
@@ -347,6 +355,7 @@ ogs_pkbuf_t *sgsap_build_ue_unreachable(mme_ue_t *mme_ue, uint8_t sgs_cause)
             SGSAP_IE_SGS_CAUSE_LEN, 0, &sgs_cause);
 
     pkbuf = ogs_pkbuf_alloc(NULL, OGS_MAX_SDU_LEN);
+    ogs_assert(pkbuf);
     ogs_pkbuf_put_u8(pkbuf, SGSAP_UE_UNREACHABLE);
     ogs_pkbuf_put(pkbuf, OGS_MAX_SDU_LEN-1);
 

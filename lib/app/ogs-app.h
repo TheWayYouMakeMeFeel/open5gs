@@ -27,7 +27,7 @@
 extern int __ogs_app_domain;
 
 #include "app/ogs-yaml.h"
-#include "app/ogs-config.h"
+#include "app/ogs-context.h"
 #include "app/ogs-init.h"
 
 #undef OGS_APP_INSIDE
@@ -51,11 +51,38 @@ void hss_terminate(void);
 int sgw_initialize(void);
 void sgw_terminate(void);
 
+int sgwc_initialize(void);
+void sgwc_terminate(void);
+
+int sgwu_initialize(void);
+void sgwu_terminate(void);
+
 int pgw_initialize(void);
 void pgw_terminate(void);
 
 int pcrf_initialize(void);
 void pcrf_terminate(void);
+
+int nrf_initialize(void);
+void nrf_terminate(void);
+
+int udr_initialize(void);
+void udr_terminate(void);
+
+int udm_initialize(void);
+void udm_terminate(void);
+
+int ausf_initialize(void);
+void ausf_terminate(void);
+
+int upf_initialize(void);
+void upf_terminate(void);
+
+int smf_initialize(void);
+void smf_terminate(void);
+
+int amf_initialize(void);
+void amf_terminate(void);
 
 #ifdef __cplusplus
 }

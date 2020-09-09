@@ -15,18 +15,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-testvolte_sources = files('''
+testapp_volte_sources = files('''
     pcscf-fd-path.h
     pcscf-fd-path.c
 
     abts-main.c
-    volte-test.c
+    bearer-test.c
+    session-test.c
+    rx-test.c
+    video-test.c
 '''.split())
 
-testvolte_exe = executable('volte',
-    sources : testvolte_sources,
-    c_args : [testcore_cc_flags,
+testapp_volte_exe = executable('volte',
+    sources : testapp_volte_sources,
+    c_args : [testunit_core_cc_flags,
         '-DFD_EXT_DIR="@0@"'.format(freediameter_extensions_builddir)],
-    dependencies : libtestapp_dep)
+    dependencies : libtestepc_dep)
 
-test('volte', testvolte_exe, is_parallel : false, suite: 'system')
+test('volte', testapp_volte_exe, is_parallel : false, suite: 'epc')

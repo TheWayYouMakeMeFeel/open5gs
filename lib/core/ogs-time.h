@@ -34,7 +34,7 @@ typedef int64_t ogs_time_t;
 #define OGS_NO_WAIT_TIME (0)
 
 /** number of microseconds per second */
-#define OGS_USEC_PER_SEC (1000000)
+#define OGS_USEC_PER_SEC (1000000LL)
 
 /** @return ogs_time_t as a second */
 #define ogs_time_sec(time) ((time) / OGS_USEC_PER_SEC)
@@ -56,6 +56,10 @@ typedef int64_t ogs_time_t;
 
 int ogs_gettimeofday(struct timeval *tv);
 
+ogs_time_t ogs_time_now(void); /* This returns GMT */
+int ogs_time_from_lt(ogs_time_t *t, struct tm *tm, int tm_usec);
+int ogs_time_from_gmt(ogs_time_t *t, struct tm *tm, int tm_usec);
+
 /** @return number of microseconds since an arbitrary point */
 ogs_time_t ogs_get_monotonic_time(void);
 /** @return the GMT offset in seconds */
@@ -66,6 +70,10 @@ void ogs_gmtime(time_t s, struct tm *tm);
 
 void ogs_msleep(time_t msec);
 void ogs_usleep(time_t usec);
+
+#define ogs_mktime mktime
+#define ogs_strptime strptime
+#define ogs_strftime strftime
 
 #ifdef __cplusplus
 }

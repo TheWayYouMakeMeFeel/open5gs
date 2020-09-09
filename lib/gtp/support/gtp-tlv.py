@@ -99,7 +99,7 @@ def get_cells(cells):
     instance = cells[4].text.encode('ascii', 'ignore')
     if instance.isdigit() is not True:
         return None
-    ie_type = re.sub('\s*$', '', re.sub('\s*\n*\s*\(NOTE.*\)*', '', cells[3].text.encode('ascii', 'ignore')))
+    ie_type = re.sub('\s*$', '', re.sub('\s*\n*\s*\([A-z]*\s*NOTE.*\)*', '', cells[3].text.encode('ascii', 'ignore')))
     if ie_type.find('LDN') != -1:
         ie_type = 'LDN'
     elif ie_type.find('APCO') != -1:
@@ -110,10 +110,17 @@ def get_cells(cells):
         ie_type = 'eNB Information Reporting'
     elif ie_type.find('IPv4 Configuration Parameters (IP4CP)') != -1:
         ie_type = 'IP4CP'
+    elif ie_type.find('Charging characteristics') != -1:
+        ie_type = 'Charging Characteristics'
+    elif ie_type.find('Change To Report Flags') != -1:
+        ie_type = 'Change to Report Flags'
+    elif ie_type.find('APN RATE Control Status') != -1:
+        ie_type = 'APN Rate Control Status'
     if ie_type not in type_list.keys():
         assert False, "Unknown IE type : [" \
                 + cells[3].text + "]" + "(" + ie_type + ")"
     presence = cells[1].text.encode('ascii', 'ignore')
+    presence = re.sub('\n', '', presence);
     ie_value = re.sub('\s*\n*\s*\([^\)]*\)*', '', cells[0].text).encode('ascii', 'ignore')
     comment = cells[2].text.encode('ascii', 'ignore')
     comment = re.sub('\n|\"|\'|\\\\', '', comment);
@@ -274,8 +281,9 @@ else:
                         ies.append(cells)
                         write_cells_to_file("ies", cells)
 
-                group_list[ie_name] = { "type" : ie_type, "ies" : ies }
-                write_file(f, "group_list[\"" + ie_name + "\"] = { \"type\" : \"" + ie_type + "\", \"ies\" : ies }\n")
+                ie_idx = str(int(ie_type)+100)
+                group_list[ie_name] = { "index" : ie_idx, "type" : ie_type, "ies" : ies }
+                write_file(f, "group_list[\"" + ie_name + "\"] = { \"index\" : \"" + ie_idx + "\", \"type\" : \"" + ie_type + "\", \"ies\" : ies }\n")
             else:
                 group_list_is_added = False
                 added_ies = group_list[ie_name]["ies"]
@@ -297,41 +305,42 @@ else:
                         write_cells_to_file("added_ies", cells)
                         group_list_is_added = True
                 if group_list_is_added is True:
-                    group_list[ie_name] = { "type" : ie_type, "ies" : added_ies }
-                    write_file(f, "group_list[\"" + ie_name + "\"] = { \"type\" : \"" + ie_type + "\", \"ies\" : added_ies }\n")
+                    ie_idx = str(int(ie_type)+100)
+                    group_list[ie_name] = { "index" : ie_idx, "type" : ie_type, "ies" : added_ies }
+                    write_file(f, "group_list[\"" + ie_name + "\"] = { \"index\" : \"" + ie_idx + "\", \"type\" : \"" + ie_type + "\", \"ies\" : added_ies }\n")
     f.close()
 
-msg_list["Echo Request"]["table"] = 6
-msg_list["Echo Response"]["table"] = 7
-msg_list["Create Session Request"]["table"] = 8
-msg_list["Create Session Response"]["table"] = 13
-msg_list["Create Bearer Request"]["table"] = 18
-msg_list["Create Bearer Response"]["table"] = 22
-msg_list["Bearer Resource Command"]["table"] = 25
-msg_list["Bearer Resource Failure Indication"]["table"] = 27
-msg_list["Modify Bearer Request"]["table"] = 29
-msg_list["Modify Bearer Response"]["table"] = 33
-msg_list["Delete Session Request"]["table"] = 38
-msg_list["Delete Bearer Request"]["table"] = 40
-msg_list["Delete Session Response"]["table"] = 44
-msg_list["Delete Bearer Response"]["table"] = 47
-msg_list["Downlink Data Notification"]["table"] = 50
-msg_list["Downlink Data Notification Acknowledge"]["table"] = 53
-msg_list["Downlink Data Notification Failure Indication"]["table"] = 54
-msg_list["Delete Indirect Data Forwarding Tunnel Request"]["table"] = 55
-msg_list["Delete Indirect Data Forwarding Tunnel Response"]["table"] = 56
-msg_list["Modify Bearer Command"]["table"] = 57
-msg_list["Modify Bearer Failure Indication"]["table"] = 60
-msg_list["Update Bearer Request"]["table"] = 62
-msg_list["Update Bearer Response"]["table"] = 66
-msg_list["Delete Bearer Command"]["table"] = 69
-msg_list["Delete Bearer Failure Indication"]["table"] = 72
-msg_list["Create Indirect Data Forwarding Tunnel Request"]["table"] = 75
-msg_list["Create Indirect Data Forwarding Tunnel Response"]["table"] = 77
-msg_list["Release Access Bearers Request"]["table"] = 79
-msg_list["Release Access Bearers Response"]["table"] = 80
-msg_list["Modify Access Bearers Request"]["table"] = 84
-msg_list["Modify Access Bearers Response"]["table"] = 87
+msg_list["Echo Request"]["table"] = 8
+msg_list["Echo Response"]["table"] = 9
+msg_list["Create Session Request"]["table"] = 10
+msg_list["Create Session Response"]["table"] = 15
+msg_list["Create Bearer Request"]["table"] = 20
+msg_list["Create Bearer Response"]["table"] = 24
+msg_list["Bearer Resource Command"]["table"] = 27
+msg_list["Bearer Resource Failure Indication"]["table"] = 29
+msg_list["Modify Bearer Request"]["table"] = 31
+msg_list["Modify Bearer Response"]["table"] = 35
+msg_list["Delete Session Request"]["table"] = 40
+msg_list["Delete Bearer Request"]["table"] = 42
+msg_list["Delete Session Response"]["table"] = 46
+msg_list["Delete Bearer Response"]["table"] = 49
+msg_list["Downlink Data Notification"]["table"] = 52
+msg_list["Downlink Data Notification Acknowledge"]["table"] = 55
+msg_list["Downlink Data Notification Failure Indication"]["table"] = 56
+msg_list["Delete Indirect Data Forwarding Tunnel Request"]["table"] = 57
+msg_list["Delete Indirect Data Forwarding Tunnel Response"]["table"] = 58
+msg_list["Modify Bearer Command"]["table"] = 59
+msg_list["Modify Bearer Failure Indication"]["table"] = 62
+msg_list["Update Bearer Request"]["table"] = 64
+msg_list["Update Bearer Response"]["table"] = 68
+msg_list["Delete Bearer Command"]["table"] = 71
+msg_list["Delete Bearer Failure Indication"]["table"] = 74
+msg_list["Create Indirect Data Forwarding Tunnel Request"]["table"] = 77
+msg_list["Create Indirect Data Forwarding Tunnel Response"]["table"] = 79
+msg_list["Release Access Bearers Request"]["table"] = 81
+msg_list["Release Access Bearers Response"]["table"] = 82
+msg_list["Modify Access Bearers Request"]["table"] = 86
+msg_list["Modify Access Bearers Response"]["table"] = 89
 
 for key in msg_list.keys():
     if "table" in msg_list[key].keys():
@@ -372,6 +381,7 @@ type_list["Port Number"]["size"] = 2                    # Type : 126
 type_list["APN Restriction"]["size"] = 1                # Type : 127
 type_list["Selection Mode"]["size"] = 1                 # Type : 128
 type_list["Node Type"]["size"] = 1                      # Type : 135
+type_list["Node Features"]["size"] = 1                  # Type : 152
 
 f = open(outdir + 'message.h', 'w')
 output_header_to_file(f)
@@ -393,6 +403,8 @@ extern "C" {
 typedef struct ogs_gtp_header_s {
     union {
         struct {
+#define OGS_GTP_VERSION_0 0
+#define OGS_GTP_VERSION_1 1
         ED4(uint8_t version:3;,
             uint8_t piggybacked:1;,
             uint8_t teid_presence:1;,
@@ -401,23 +413,9 @@ typedef struct ogs_gtp_header_s {
 /* GTU-U flags */
 #define OGS_GTPU_FLAGS_PN                       0x1
 #define OGS_GTPU_FLAGS_S                        0x2
+#define OGS_GTPU_FLAGS_E                        0x4
         uint8_t flags;
     };
-    uint8_t type;
-    uint16_t length;
-    union {
-        struct {
-            uint32_t teid;
-            /* sqn : 31bit ~ 8bit, spare : 7bit ~ 0bit */
-#define OGS_GTP_XID_TO_SQN(__xid) htonl(((__xid) << 8))
-#define OGS_GTP_SQN_TO_XID(__sqn) (ntohl(__sqn) >> 8)
-            uint32_t sqn;
-        };
-        /* sqn : 31bit ~ 8bit, spare : 7bit ~ 0bit */
-        uint32_t sqn_only;
-    };
-} __attribute__ ((packed)) ogs_gtp_header_t;
-
 /* GTP-U message type, defined in 3GPP TS 29.281 Release 11 */
 #define OGS_GTPU_MSGTYPE_ECHO_REQ               1
 #define OGS_GTPU_MSGTYPE_ECHO_RSP               2
@@ -425,6 +423,20 @@ typedef struct ogs_gtp_header_s {
 #define OGS_GTPU_MSGTYPE_SUPP_EXTHDR_NOTI       31
 #define OGS_GTPU_MSGTYPE_END_MARKER             254
 #define OGS_GTPU_MSGTYPE_GPDU                   255
+    uint8_t type;
+    uint16_t length;
+    union {
+        struct {
+            uint32_t teid;
+            /* sqn : 31bit ~ 8bit, spare : 7bit ~ 0bit */
+#define OGS_GTP_XID_TO_SQN(__xid) htobe32(((__xid) << 8))
+#define OGS_GTP_SQN_TO_XID(__sqn) (be32toh(__sqn) >> 8)
+            uint32_t sqn;
+        };
+        /* sqn : 31bit ~ 8bit, spare : 7bit ~ 0bit */
+        uint32_t sqn_only;
+    };
+} __attribute__ ((packed)) ogs_gtp_header_t;
 
 /* GTPv2-C message type */
 """)
@@ -450,7 +462,13 @@ for (k, v) in sorted_type_list:
         f.write("_" + str(instance) + ";\n")
 f.write("\n")
 
-tmp = [(k, v["type"]) for k, v in group_list.items()]
+for k, v in group_list.items():
+    if v_lower(k) == "pc5_qos_parameters":
+        v["index"] = "1"
+    if v_lower(k) == "remote_ue_context":
+        v["index"] = "2"
+
+tmp = [(k, v["index"]) for k, v in group_list.items()]
 sorted_group_list = sorted(tmp, key=lambda tup: int(tup[1]))
 
 f.write("/* Group Infomration Element TLV Descriptor */\n")
@@ -509,8 +527,12 @@ for (k, v) in sorted_msg_list:
     if "ies" in msg_list[k]:
         f.write("typedef struct ogs_gtp_" + v_lower(k) + "_s {\n")
         for ies in msg_list[k]["ies"]:
-            f.write("    ogs_gtp_tlv_" + v_lower(ies["ie_type"]) + "_t " + \
-                    v_lower(ies["ie_value"]) + ";\n")
+            if (k == 'Create Indirect Data Forwarding Tunnel Request' or k == 'Create Indirect Data Forwarding Tunnel Response') and ies["ie_value"] == 'Bearer Contexts':
+                f.write("    ogs_gtp_tlv_" + v_lower(ies["ie_type"]) + "_t " + \
+                        v_lower(ies["ie_value"]) + "[8];\n")
+            else:
+                f.write("    ogs_gtp_tlv_" + v_lower(ies["ie_type"]) + "_t " + \
+                        v_lower(ies["ie_value"]) + ";\n")
         f.write("} ogs_gtp_" + v_lower(k) + "_t;\n")
         f.write("\n")
 
@@ -595,7 +617,9 @@ for (k, v) in sorted_msg_list:
         f.write("    \"%s\",\n" % k)
         f.write("    0, 0, 0, 0, {\n")
         for ies in msg_list[k]["ies"]:
-                f.write("        &ogs_gtp_tlv_desc_%s_%s,\n" % (v_lower(ies["ie_type"]), v_lower(ies["instance"])))
+            f.write("        &ogs_gtp_tlv_desc_%s_%s,\n" % (v_lower(ies["ie_type"]), v_lower(ies["instance"])))
+            if (k == 'Create Indirect Data Forwarding Tunnel Request' or k == 'Create Indirect Data Forwarding Tunnel Response') and ies["ie_value"] == 'Bearer Contexts':
+                f.write("        &ogs_tlv_desc_more8,\n")
         f.write("    NULL,\n")
         f.write("}};\n\n")
 f.write("\n")
@@ -624,10 +648,12 @@ f.write("""int ogs_gtp_parse_msg(ogs_gtp_message_t *gtp_message, ogs_pkbuf_t *pk
     memcpy(&gtp_message->h, pkbuf->data - size, size);
 
     if (h->teid_presence)
-        gtp_message->h.teid = ntohl(gtp_message->h.teid);
+        gtp_message->h.teid = be32toh(gtp_message->h.teid);
 
-    if (pkbuf->len == 0)
+    if (pkbuf->len == 0) {
+        ogs_assert(ogs_pkbuf_push(pkbuf, size));
         return OGS_OK;
+    }
 
     switch(gtp_message->h.type) {
 """)
@@ -641,6 +667,8 @@ f.write("""    default:
         ogs_warn("Not implmeneted(type:%d)", gtp_message->h.type);
         break;
     }
+
+    ogs_assert(ogs_pkbuf_push(pkbuf, size));
 
     return rv;
 }

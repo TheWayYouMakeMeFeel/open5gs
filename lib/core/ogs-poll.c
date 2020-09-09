@@ -17,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "core-config-private.h"
+
 #include "ogs-core.h"
 
 #include "ogs-poll-private.h"
@@ -28,12 +30,14 @@ extern const ogs_pollset_actions_t ogs_select_actions;
 ogs_pollset_actions_t ogs_pollset_actions;
 bool ogs_pollset_actions_initialized = false;
 
-ogs_pollset_t *ogs_pollset_create(void)
+ogs_pollset_t *ogs_pollset_create(unsigned int capacity)
 {
     ogs_pollset_t *pollset = ogs_calloc(1, sizeof *pollset);
     ogs_assert(pollset);
 
-    ogs_pool_init(&pollset->pool, ogs_core()->socket.pool);
+    pollset->capacity = capacity;
+
+    ogs_pool_init(&pollset->pool, capacity);
 
     if (ogs_pollset_actions_initialized == false) {
 #if defined(HAVE_KQUEUE)
@@ -80,13 +84,14 @@ ogs_poll_t *ogs_pollset_add(ogs_pollset_t *pollset, short when,
     rc = ogs_closeonexec(fd);
     ogs_assert(rc == OGS_OK);
 
+    poll->when = when;
     poll->fd = fd;
     poll->handler = handler;
     poll->data = data;
 
     poll->pollset = pollset;
 
-    rc = ogs_pollset_actions.add(poll, when);
+    rc = ogs_pollset_actions.add(poll);
     if (rc != OGS_OK) {
         ogs_error("cannot add poll");
         ogs_pool_free(&pollset->pool, poll);

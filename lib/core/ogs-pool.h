@@ -66,7 +66,9 @@ typedef unsigned int ogs_index_t;
 
 #define ogs_pool_index(pool, node) (((node) - (pool)->array)+1)
 #define ogs_pool_find(pool, _index) \
-    (_index > 0) ? (pool)->index[_index-1] : NULL
+    (_index > 0 && _index <= (pool)->size) ? (pool)->index[_index-1] : NULL
+#define ogs_pool_cycle(pool, node) \
+    ogs_pool_find((pool), ogs_pool_index((pool), (node)))
 
 #define ogs_pool_alloc(pool, node) do { \
     *(node) = NULL; \
@@ -90,6 +92,32 @@ typedef unsigned int ogs_index_t;
 
 #define ogs_pool_size(pool) ((pool)->size)
 #define ogs_pool_avail(pool) ((pool)->avail)
+
+#define ogs_index_init(pool, _size) do { \
+    int i; \
+    (pool)->name = #pool; \
+    (pool)->free = ogs_malloc(sizeof(*(pool)->free) * _size); \
+    ogs_assert((pool)->free); \
+    (pool)->array = ogs_malloc(sizeof(*(pool)->array) * _size); \
+    ogs_assert((pool)->array); \
+    (pool)->index = ogs_malloc(sizeof(*(pool)->index) * _size); \
+    ogs_assert((pool)->index); \
+    (pool)->size = (pool)->avail = _size; \
+    (pool)->head = (pool)->tail = 0; \
+    for (i = 0; i < _size; i++) { \
+        (pool)->free[i] = &((pool)->array[i]); \
+        (pool)->index[i] = NULL; \
+    } \
+} while (0)
+
+#define ogs_index_final(pool) do { \
+    if (((pool)->size != (pool)->avail)) \
+        ogs_error("%d in '%s[%d]' were not released.", \
+                (pool)->size - (pool)->avail, (pool)->name, (pool)->size); \
+    ogs_free((pool)->free); \
+    ogs_free((pool)->array); \
+    ogs_free((pool)->index); \
+} while (0)
 
 #ifdef __cplusplus
 }

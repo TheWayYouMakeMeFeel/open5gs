@@ -31,6 +31,24 @@
 #include "mme-s11-build.h"
 #include "mme-s11-handler.h"
 
+void mme_s11_handle_echo_request(
+        ogs_gtp_xact_t *xact, ogs_gtp_echo_request_t *req)
+{
+    ogs_assert(xact);
+    ogs_assert(req);
+
+    ogs_debug("[MME] Receiving Echo Request");
+    /* FIXME : Before implementing recovery counter correctly,
+     *         I'll re-use the recovery value in request message */
+    ogs_gtp_send_echo_response(xact, req->recovery.u8, 0);
+}
+
+void mme_s11_handle_echo_response(
+        ogs_gtp_xact_t *xact, ogs_gtp_echo_response_t *rsp)
+{
+    /* Not Implemented */
+}
+
 void mme_s11_handle_create_session_response(
         ogs_gtp_xact_t *xact, mme_ue_t *mme_ue,
         ogs_gtp_create_session_response_t *rsp)
@@ -43,6 +61,9 @@ void mme_s11_handle_create_session_response(
     mme_bearer_t *bearer = NULL;
     mme_sess_t *sess = NULL;
     ogs_pdn_t *pdn = NULL;
+    ogs_gtp_bearer_qos_t bearer_qos;
+    ogs_gtp_ambr_t *ambr = NULL;
+    uint16_t decoded = 0;
     
     ogs_assert(xact);
     ogs_assert(rsp);
@@ -104,6 +125,10 @@ void mme_s11_handle_create_session_response(
     }
 
     if (cause_value != OGS_GTP_CAUSE_REQUEST_ACCEPTED) {
+        if (OGS_FSM_CHECK(&mme_ue->sm, emm_state_initial_context_setup)) {
+            nas_eps_send_attach_reject(mme_ue,
+                EMM_CAUSE_NETWORK_FAILURE, ESM_CAUSE_NETWORK_FAILURE);
+        }
         mme_send_delete_session_or_mme_ue_context_release(mme_ue);
         return;
     }
@@ -129,6 +154,27 @@ void mme_s11_handle_create_session_response(
                 &rsp->protocol_configuration_options);
     }
 
+    /* Bearer QoS */
+    if (rsp->bearer_contexts_created.bearer_level_qos.presence) {
+        decoded = ogs_gtp_parse_bearer_qos(&bearer_qos,
+            &rsp->bearer_contexts_created.bearer_level_qos);
+        ogs_assert(rsp->bearer_contexts_created.bearer_level_qos.len ==
+                decoded);
+        pdn->qos.qci = bearer_qos.qci;
+        pdn->qos.arp.priority_level = bearer_qos.priority_level;
+        pdn->qos.arp.pre_emption_capability =
+                        bearer_qos.pre_emption_capability;
+        pdn->qos.arp.pre_emption_vulnerability =
+                        bearer_qos.pre_emption_vulnerability;
+    }
+
+    /* AMBR */
+    if (rsp->aggregate_maximum_bit_rate.presence) {
+        ambr = rsp->aggregate_maximum_bit_rate.data;
+        pdn->ambr.downlink = be32toh(ambr->downlink) * 1000;
+        pdn->ambr.uplink = be32toh(ambr->uplink) * 1000;
+    }
+
     /* Data Plane(UL) : SGW-S1U */
     sgw_s1u_teid = rsp->bearer_contexts_created.s1_u_enodeb_f_teid.data;
     bearer->sgw_s1u_teid = ntohl(sgw_s1u_teid->teid);
@@ -148,11 +194,11 @@ void mme_s11_handle_create_session_response(
         if (csmap) {
             sgsap_send_location_update_request(mme_ue);
         } else {
-            nas_send_attach_accept(mme_ue);
+            nas_eps_send_attach_accept(mme_ue);
         }
 
     } else if (OGS_FSM_CHECK(&mme_ue->sm, emm_state_registered)) {
-        nas_send_activate_default_bearer_context_request(bearer);
+        nas_eps_send_activate_default_bearer_context_request(bearer);
     } else
         ogs_assert_if_reached();
 }
@@ -253,14 +299,14 @@ void mme_s11_handle_delete_session_response(
         }
     } else if (OGS_FSM_CHECK(&mme_ue->sm, emm_state_de_registered)) {
         if (mme_sess_count(mme_ue) == 1) /* Last Session */ {
-            nas_send_detach_accept(mme_ue);
+            nas_eps_send_detach_accept(mme_ue);
         }
     } else if (OGS_FSM_CHECK(&mme_ue->sm, emm_state_registered)) {
         mme_bearer_t *bearer = mme_default_bearer_in_sess(sess);
         ogs_expect_or_return(bearer);
 
         if (OGS_FSM_CHECK(&bearer->sm, esm_state_pdn_will_disconnect)) {
-            nas_send_deactivate_bearer_context_request(bearer);
+            nas_eps_send_deactivate_bearer_context_request(bearer);
             
             /*
              * mme_sess_remove() should not be called here.
@@ -384,6 +430,15 @@ void mme_s11_handle_create_bearer_request(
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
             mme_ue->mme_s11_teid, mme_ue->sgw_s11_teid);
 
+    /* Set PTI */
+    sess = bearer->sess;
+    ogs_assert(sess);
+    sess->pti = OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED;
+    if (req->procedure_transaction_id.presence) {
+        sess->pti = req->procedure_transaction_id.u8;
+        ogs_debug("    PTI[%d]", sess->pti);
+    }
+
     /* Data Plane(UL) : SGW-S1U */
     sgw_s1u_teid = req->bearer_contexts.s1_u_enodeb_f_teid.data;
     bearer->sgw_s1u_teid = ntohl(sgw_s1u_teid->teid);
@@ -420,7 +475,7 @@ void mme_s11_handle_create_bearer_request(
         /* Check if Initial Context Setup Response or 
          *          E-RAB Setup Response is received */
         MME_HAVE_ENB_S1U_PATH(default_bearer)) {
-        nas_send_activate_dedicated_bearer_context_request(bearer);
+        nas_eps_send_activate_dedicated_bearer_context_request(bearer);
     }
 }
 
@@ -430,6 +485,7 @@ void mme_s11_handle_update_bearer_request(
 {
     uint8_t cause_value = 0;
     mme_bearer_t *bearer = NULL;
+    mme_sess_t *sess = NULL;
     ogs_gtp_bearer_qos_t bearer_qos;
 
     ogs_assert(xact);
@@ -468,6 +524,15 @@ void mme_s11_handle_update_bearer_request(
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
             mme_ue->mme_s11_teid, mme_ue->sgw_s11_teid);
 
+    /* Set PTI */
+    sess = bearer->sess;
+    ogs_assert(sess);
+    sess->pti = OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED;
+    if (req->procedure_transaction_id.presence) {
+        sess->pti = req->procedure_transaction_id.u8;
+        ogs_debug("    PTI[%d]", sess->pti);
+    }
+
     /* Save Transaction. will be handled after EMM-attached */
     bearer->xact = xact;
 
@@ -500,7 +565,7 @@ void mme_s11_handle_update_bearer_request(
 
         if (req->bearer_contexts.bearer_level_qos.presence == 1 ||
             req->bearer_contexts.tft.presence == 1) {
-            nas_send_modify_bearer_context_request(bearer, 
+            nas_eps_send_modify_bearer_context_request(bearer, 
                     req->bearer_contexts.bearer_level_qos.presence,
                     req->bearer_contexts.tft.presence);
         } else {
@@ -509,7 +574,7 @@ void mme_s11_handle_update_bearer_request(
 
             if (xact->xid & OGS_GTP_CMD_XACT_ID) {
                 /* MME recieved Bearer resource modification request */
-                nas_send_bearer_resource_modification_reject(
+                nas_eps_send_bearer_resource_modification_reject(
                         bearer, ESM_CAUSE_SERVICE_OPTION_NOT_SUPPORTED);
             }
 
@@ -530,6 +595,7 @@ void mme_s11_handle_delete_bearer_request(
         ogs_gtp_delete_bearer_request_t *req)
 {
     mme_bearer_t *bearer = NULL;
+    mme_sess_t *sess = NULL;
 
     ogs_assert(xact);
     ogs_assert(req);
@@ -557,6 +623,15 @@ void mme_s11_handle_delete_bearer_request(
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
             mme_ue->mme_s11_teid, mme_ue->sgw_s11_teid);
 
+    /* Set PTI */
+    sess = bearer->sess;
+    ogs_assert(sess);
+    sess->pti = OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED;
+    if (req->procedure_transaction_id.presence) {
+        sess->pti = req->procedure_transaction_id.u8;
+        ogs_debug("    PTI[%d]", sess->pti);
+    }
+
     /* Save Transaction. will be handled after EMM-attached */
     ogs_assert(bearer);
     bearer->xact = xact;
@@ -566,7 +641,7 @@ void mme_s11_handle_delete_bearer_request(
         /* Check if Initial Context Setup Response or 
          *          E-RAB Setup Response is received */
         MME_HAVE_ENB_S1U_PATH(bearer)) {
-        nas_send_deactivate_bearer_context_request(bearer);
+        nas_eps_send_deactivate_bearer_context_request(bearer);
     } else {
         if (!OGS_FSM_CHECK(&bearer->sm, esm_state_active)) {
             ogs_assert_if_reached();
@@ -648,7 +723,7 @@ void mme_s11_handle_downlink_data_notification(
     cause.value = OGS_GTP_CAUSE_REQUEST_ACCEPTED;
 
     if (!mme_ue) {
-        ogs_warn("No Context");
+        ogs_warn("OGS_GTP_CAUSE_CONTEXT_NOT_FOUND");
         cause.value = OGS_GTP_CAUSE_CONTEXT_NOT_FOUND;
     }
 
@@ -687,7 +762,6 @@ void mme_s11_handle_create_indirect_data_forwarding_tunnel_response(
     enb_ue_t *source_ue = NULL;
     int i;
 
-    ogs_gtp_tlv_bearer_context_t *bearers[OGS_GTP_MAX_INDIRECT_TUNNEL];
     ogs_gtp_f_teid_t *teid = NULL;
 
     ogs_assert(xact);
@@ -721,28 +795,26 @@ void mme_s11_handle_create_indirect_data_forwarding_tunnel_response(
         return;
     }
 
-    ogs_gtp_bearers_in_create_indirect_tunnel_response(&bearers, rsp);
-
-    for (i = 0; bearers[i]->presence; i++) {
-        if (bearers[i]->eps_bearer_id.presence == 0) {
+    for (i = 0; rsp->bearer_contexts[i].presence; i++) {
+        if (rsp->bearer_contexts[i].eps_bearer_id.presence == 0) {
             ogs_error("No EBI");
             return;
         }
 
         bearer = mme_bearer_find_by_ue_ebi(mme_ue, 
-                    bearers[i]->eps_bearer_id.u8);
+                    rsp->bearer_contexts[i].eps_bearer_id.u8);
         ogs_expect_or_return(bearer);
 
-        if (bearers[i]->s4_u_sgsn_f_teid.presence) {
-            teid = bearers[i]->s4_u_sgsn_f_teid.data;
+        if (rsp->bearer_contexts[i].s4_u_sgsn_f_teid.presence) {
+            teid = rsp->bearer_contexts[i].s4_u_sgsn_f_teid.data;
             ogs_assert(teid);
 
             bearer->sgw_dl_teid = ntohl(teid->teid);
             rv = ogs_gtp_f_teid_to_ip(teid, &bearer->sgw_dl_ip);
             ogs_expect_or_return(rv == OGS_OK);
         }
-        if (bearers[i]->s2b_u_epdg_f_teid_5.presence) {
-            teid = bearers[i]->s2b_u_epdg_f_teid_5.data;
+        if (rsp->bearer_contexts[i].s2b_u_epdg_f_teid_5.presence) {
+            teid = rsp->bearer_contexts[i].s2b_u_epdg_f_teid_5.data;
             ogs_assert(teid);
 
             bearer->sgw_ul_teid = ntohl(teid->teid);
@@ -831,6 +903,6 @@ void mme_s11_handle_bearer_resource_failure_indication(
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
             mme_ue->mme_s11_teid, mme_ue->sgw_s11_teid);
 
-    nas_send_bearer_resource_modification_reject(
+    nas_eps_send_bearer_resource_modification_reject(
             bearer, ESM_CAUSE_SERVICE_OPTION_NOT_SUPPORTED);
 }

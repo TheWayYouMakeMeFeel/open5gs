@@ -32,10 +32,10 @@ int hss_initialize(void)
     if (rv != OGS_OK) return rv;
 
     rv = ogs_log_config_domain(
-            ogs_config()->logger.domain, ogs_config()->logger.level);
+            ogs_app()->logger.domain, ogs_app()->logger.level);
     if (rv != OGS_OK) return rv;
 
-    rv = hss_db_init();
+    rv = ogs_dbi_init(ogs_app()->db_uri);
     if (rv != OGS_OK) return rv;
 
     rv = hss_fd_init();
@@ -52,7 +52,7 @@ void hss_terminate(void)
 
     hss_fd_final();
 
-    hss_db_final();
+    ogs_dbi_final();
     hss_context_final();
 	
 	return;

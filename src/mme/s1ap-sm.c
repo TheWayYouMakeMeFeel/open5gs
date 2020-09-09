@@ -18,7 +18,7 @@
  */
 
 #include "ogs-gtp.h"
-#include "ogs-nas.h"
+#include "ogs-nas-eps.h"
 
 #include "s1ap-build.h"
 #include "s1ap-handler.h"
@@ -116,8 +116,14 @@ void s1ap_state_operational(ogs_fsm_t *s, mme_event_t *e)
             case S1AP_ProcedureCode_id_Reset:
                 s1ap_handle_s1_reset(enb, pdu);
                 break;
+            case S1AP_ProcedureCode_id_ErrorIndication:
+                /* TODO */
+                break;
+            case S1AP_ProcedureCode_id_NASNonDeliveryIndication:
+                /* TODO */
+                break;
             default:
-                ogs_warn("Not implemented(choice:%d, proc:%d)",
+                ogs_error("Not implemented(choice:%d, proc:%d)",
                         pdu->present, (int)initiatingMessage->procedureCode);
                 break;
             }
@@ -154,7 +160,7 @@ void s1ap_state_operational(ogs_fsm_t *s, mme_event_t *e)
                 s1ap_handle_kill_response(enb, pdu);
                 break;
             default:
-                ogs_warn("Not implemented(choice:%d, proc:%d)",
+                ogs_error("Not implemented(choice:%d, proc:%d)",
                         pdu->present, (int)successfulOutcome->procedureCode);
                 break;
             }
@@ -174,31 +180,16 @@ void s1ap_state_operational(ogs_fsm_t *s, mme_event_t *e)
                 s1ap_handle_handover_failure(enb, pdu);
                 break;
             default:
-                ogs_warn("Not implemented(choice:%d, proc:%d)",
+                ogs_error("Not implemented(choice:%d, proc:%d)",
                         pdu->present, (int)unsuccessfulOutcome->procedureCode);
                 break;
             }
             break;
         default:
-            ogs_warn("Not implemented(choice:%d)", pdu->present);
+            ogs_error("Not implemented(choice:%d)", pdu->present);
             break;
         }
 
-        break;
-    case MME_EVT_S1AP_TIMER:
-        switch (e->timer_id) {
-        case MME_TIMER_S1_DELAYED_SEND:
-            ogs_assert(e->enb_ue);
-            ogs_assert(e->pkbuf);
-
-            ogs_expect(OGS_OK == s1ap_send_to_enb_ue(e->enb_ue, e->pkbuf));
-            ogs_timer_delete(e->timer);
-            break;
-        default:
-            ogs_error("Unknown timer[%s:%d]",
-                    mme_timer_get_name(e->timer_id), e->timer_id);
-            break;
-        }
         break;
     default:
         ogs_error("Unknown event %s", mme_event_get_name(e));

@@ -27,18 +27,6 @@ typedef struct ogs_timer_mgr_s {
     ogs_rbtree_t tree;
 } ogs_timer_mgr_t;
 
-typedef struct ogs_timer_s {
-    ogs_rbnode_t rbnode;
-    ogs_lnode_t lnode;
-
-    void (*cb)(void*);
-    void *data;
-
-    ogs_timer_mgr_t *manager;
-    bool running;
-    ogs_time_t timeout;;       
-} ogs_timer_t;
-
 static void add_timer_node(
         ogs_rbtree_t *tree, ogs_timer_t *timer, ogs_time_t duration)
 {
@@ -64,12 +52,12 @@ static void add_timer_node(
     ogs_rbtree_insert_color(tree, timer);
 }
 
-ogs_timer_mgr_t *ogs_timer_mgr_create(void)
+ogs_timer_mgr_t *ogs_timer_mgr_create(unsigned int capacity)
 {
     ogs_timer_mgr_t *manager = ogs_calloc(1, sizeof *manager);
     ogs_assert(manager);
 
-    ogs_pool_init(&manager->pool, ogs_core()->timer.pool);
+    ogs_pool_init(&manager->pool, capacity);
 
     return manager;
 }
@@ -87,7 +75,6 @@ ogs_timer_t *ogs_timer_add(
 {
     ogs_timer_t *timer = NULL;
     ogs_assert(manager);
-    ogs_assert(cb);
 
     ogs_pool_alloc(&manager->pool, &timer);
     ogs_assert(timer);
@@ -117,7 +104,7 @@ void ogs_timer_start(ogs_timer_t *timer, ogs_time_t duration)
 {
     ogs_timer_mgr_t *manager = NULL;
     ogs_assert(timer);
-    ogs_assert(duration > 0);
+    ogs_assert(duration);
 
     manager = timer->manager;
     ogs_assert(manager);
@@ -175,7 +162,6 @@ void ogs_timer_mgr_expire(ogs_timer_mgr_t *manager)
 
     current = ogs_get_monotonic_time();
 
-    ogs_list_init(&list);
     ogs_rbtree_for_each(&manager->tree, rbnode) {
         this = ogs_rb_entry(rbnode, ogs_timer_t, rbnode);
 

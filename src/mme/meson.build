@@ -16,7 +16,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 libmme_sources = files('''
-    mme-kdf.h
     mme-event.h
     mme-timer.h
     mme-context.h
@@ -43,7 +42,6 @@ libmme_sources = files('''
     mme-sm.h
     mme-path.h 
 
-    mme-kdf.c
     mme-init.c
     mme-event.c
     mme-timer.c
@@ -80,10 +78,9 @@ libmme_sources = files('''
 libmme = static_library('mme',
     sources : libmme_sources,
     dependencies : [libapp_dep,
-                    libcrypt_dep,
                     libsctp_dep,
                     libs1ap_dep,
-                    libnas_dep,
+                    libnas_eps_dep,
                     libdiameter_s6a_dep,
                     libgtp_dep],
     install : false)
@@ -91,10 +88,9 @@ libmme = static_library('mme',
 libmme_dep = declare_dependency(
     link_with : libmme,
     dependencies : [libapp_dep,
-                    libcrypt_dep,
                     libsctp_dep,
                     libs1ap_dep,
-                    libnas_dep,
+                    libnas_eps_dep,
                     libdiameter_s6a_dep,
                     libgtp_dep])
 

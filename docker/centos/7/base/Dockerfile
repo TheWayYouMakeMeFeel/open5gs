@@ -5,7 +5,7 @@ FROM ${dist}:${tag}
 MAINTAINER Sukchan Lee <acetcom@gmail.com>
 
 RUN yum -y install epel-release
-RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm
+#RUN yum -y install https://centos7.iuscommunity.org/ius-release.rpm
 RUN yum -y update
 
 RUN yum -y install \
@@ -15,6 +15,7 @@ RUN yum -y install \
         flex \
         bison \
         git \
+        meson \
         lksctp-tools-devel \
         libidn-devel \
         gnutls-devel \
@@ -22,7 +23,7 @@ RUN yum -y install \
         openssl-devel \
         cyrus-sasl-devel \
         libyaml-devel \
-        iproute \
-        mongo-c-driver-devel
-
-RUN pip3 install --upgrade pip && pip install meson
+        mongo-c-driver-devel \
+        libmicrohttpd-devel \
+        libcurl-devel \
+        iproute

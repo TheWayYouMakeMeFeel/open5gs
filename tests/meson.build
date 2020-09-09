@@ -15,13 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+testinc = include_directories('.')
+
 subdir('core')
 subdir('crypt')
 subdir('sctp')
-subdir('epc')
+subdir('common')
 subdir('app')
 subdir('unit')
-subdir('simple')
-subdir('mnc3')
+subdir('registration')
+subdir('minimal')
+subdir('attach')
 subdir('volte')
 subdir('csfb')
+subdir('310014')
+subdir('handover')

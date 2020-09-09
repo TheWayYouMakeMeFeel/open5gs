@@ -58,8 +58,7 @@ void *ogs_hex_to_ascii(void *in, int in_len, void *out, int out_len)
 
     l = (in_len - off) > out_len ? out_len : in_len - off;
     for (i = 0; i < l; i++) {
-        p += sprintf(p, "%02X", ((char*)in)[off+i] & 0xff);
-        if ((i & 0x3) == 3 && (i != (l-1))) p += sprintf(p, " ");
+        p += sprintf(p, "%02x", ((char*)in)[off+i] & 0xff);
     }
 
     return out;
@@ -109,6 +108,27 @@ void *ogs_bcd_to_buffer(const char *in, void *out, int *out_len)
     return out;
 }
 
+void *ogs_bcd_to_buffer_reverse_order(const char *in, void *out, int *out_len)
+{
+    int i = 0;
+    uint8_t *out_p = out;
+    int in_len = strlen(in);
+
+    for (i = 0; i < in_len; i++) {
+        if (i & 0x01)
+            out_p[i>>1] = out_p[i>>1] | ((in[i] - 0x30) & 0x0F);
+        else
+            out_p[i>>1] = ((in[i] - 0x30) << 4) & 0xF0;
+    }
+
+    *out_len = (in_len + 1) / 2;
+    if (in_len & 0x01) {
+        out_p[(*out_len)-1] |= 0xF0;
+    }
+
+    return out;
+}
+
 void *ogs_buffer_to_bcd(uint8_t *in, int in_len, void *out)
 {
     int i = 0;
@@ -131,3 +151,69 @@ void *ogs_buffer_to_bcd(uint8_t *in, int in_len, void *out)
     return out;
 }
 
+char ogs_from_hex(char ch)
+{
+    return isdigit(ch) ? ch - '0' : tolower(ch) - 'a' + 10;
+}
+
+char *ogs_uint24_to_string(ogs_uint24_t x)
+{
+    return ogs_msprintf("%06x", x.v);
+}
+
+char *ogs_uint28_to_string(uint32_t x)
+{
+    return ogs_msprintf("%07x", x);
+}
+
+char *ogs_uint32_to_string(uint32_t x)
+{
+    return ogs_msprintf("%08x", x);
+}
+
+char *ogs_uint36_to_string(uint64_t x)
+{
+    return ogs_msprintf("%09llx", (long long)x);
+}
+
+ogs_uint24_t ogs_uint24_from_string(char *str)
+{
+    ogs_uint24_t x;
+
+    ogs_assert(str);
+    ogs_ascii_to_hex(str, strlen(str), &x, 3);
+    return ogs_be24toh(x);
+}
+
+uint32_t ogs_uint28_from_string(char *str)
+{
+    uint32_t x;
+
+    ogs_assert(str);
+
+    x = 0;
+    ogs_ascii_to_hex(str, strlen(str), &x, 4);
+
+    return be32toh(x) >> 4;
+}
+
+uint32_t ogs_uint32_from_string(char *str)
+{
+    uint32_t x;
+
+    ogs_assert(str);
+    ogs_ascii_to_hex(str, strlen(str), &x, 4);
+    return be32toh(x);
+}
+
+uint64_t ogs_uint36_from_string(char *str)
+{
+    uint64_t x;
+
+    ogs_assert(str);
+
+    x = 0;
+    ogs_ascii_to_hex(str, strlen(str), &x, 5);
+
+    return be64toh(x) >> 28;
+}

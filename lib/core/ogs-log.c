@@ -114,10 +114,7 @@ static void file_writer(
 void ogs_log_init(void)
 {
     ogs_pool_init(&log_pool, ogs_core()->log.pool);
-    ogs_list_init(&log_list);
-
     ogs_pool_init(&domain_pool, ogs_core()->log.domain_pool);
-    ogs_list_init(&domain_list);
 
     ogs_log_add_domain("core", ogs_core()->log.level);
     ogs_log_add_stderr();
@@ -393,7 +390,10 @@ void ogs_log_vprintf(ogs_log_level_e level, int id,
 
     ogs_list_for_each(&log_list, log) {
         domain = ogs_pool_find(&domain_pool, id);
-        ogs_assert(domain);
+        if (!domain) {
+            fprintf(stderr, "No LogDomain[id:%d] in %s:%d", id, file, line);
+            ogs_assert_if_reached();
+        }
         if (domain->level < level)
             return;
 

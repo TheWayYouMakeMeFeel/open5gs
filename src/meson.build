@@ -17,12 +17,28 @@
 
 srcinc = include_directories('.')
 
+package_version = 'v' + meson.project_version()
+if git.found()
+    git_version = run_command('git', ['describe', '--abbrev=7', '--dirty=+'])
+    if git_version.returncode() == 0
+        package_version = git_version.stdout().strip()
+    endif
+endif
+
 version_conf = configuration_data()
-version_conf.set_quoted('OPEN5GS_VERSION', meson.project_version())
+version_conf.set_quoted('OPEN5GS_VERSION', package_version)
 configure_file(output : 'version.h', configuration : version_conf)
 
 subdir('mme')
 subdir('hss')
-subdir('sgw')
-subdir('pgw')
+subdir('sgwc')
+subdir('sgwu')
 subdir('pcrf')
+
+subdir('nrf')
+subdir('udr')
+subdir('udm')
+subdir('ausf')
+subdir('upf')
+subdir('smf')
+subdir('amf')

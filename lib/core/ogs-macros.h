@@ -70,6 +70,12 @@ extern "C" {
 #define OGS_GNUC_NORETURN
 #endif
 
+#if __GNUC__ > 6
+#define OGS_GNUC_FALLTHROUGH __attribute__ ((fallthrough))
+#else
+#define OGS_GNUC_FALLTHROUGH
+#endif
+
 #if defined(_WIN32)
 #define htole16(x) (x)
 #define htole32(x) (x)
@@ -118,6 +124,26 @@ extern "C" {
 #endif
 #endif
 
+typedef struct ogs_uint24_s {
+    uint32_t v:24;
+}  __attribute__ ((packed)) ogs_uint24_t;
+
+static ogs_inline ogs_uint24_t ogs_be24toh(ogs_uint24_t x)
+{
+    uint32_t tmp = x.v;
+    tmp = be32toh(tmp);
+    x.v = tmp >> 8;
+    return x;
+}
+
+static ogs_inline ogs_uint24_t ogs_htobe24(ogs_uint24_t x)
+{
+    uint32_t tmp = x.v;
+    tmp = htobe32(tmp);
+    x.v = tmp >> 8;
+    return x;
+}
+
 #if OGS_BYTE_ORDER == OGS_BIG_ENDIAN
 #define ED2(x1, x2) x1 x2
 #define ED3(x1, x2, x3) x1 x2 x3
@@ -147,9 +173,9 @@ extern "C" {
 #define OGS_PASTE(n1, n2)           OGS_PASTE_HELPER(n1, n2)
 #define OGS_PASTE_HELPER(n1, n2)    n1##n2
 
-#define INET_NTOP(src, dst) \
+#define OGS_INET_NTOP(src, dst) \
     inet_ntop(AF_INET, (void *)(uintptr_t)(src), (dst), INET_ADDRSTRLEN)
-#define INET6_NTOP(src, dst) \
+#define OGS_INET6_NTOP(src, dst) \
     inet_ntop(AF_INET6, (void *)(src), (dst), INET6_ADDRSTRLEN)
 
 #define ogs_max(x , y)  (((x) > (y)) ? (x) : (y))
@@ -160,6 +186,28 @@ extern "C" {
 #else
 #define OGS_IS_DIR_SEPARATOR(c) ((c) == OGS_DIR_SEPARATOR)
 #endif
+
+#define ogs_container_of(ptr, type, member) \
+    (type *)((u_char *)ptr - offsetof(type, member))
+
+#ifndef SWITCH_CASE_INIT
+#define SWITCH_CASE_INIT
+    #define SWITCH(X)    {char *__switch_p__,  __switch_next__; \
+                          for (__switch_p__ = \
+                                  X ? (char *)X : (char *)"OGS_SWITCH_NULL", \
+                                  __switch_next__ = 1; \
+                              __switch_p__; \
+                              __switch_p__ = 0, __switch_next__ = 1) { {
+    #define CASE(X)            } if (!__switch_next__ || \
+                                     !(__switch_next__ = \
+                                         strcmp(__switch_p__, X))) {
+    #define DEFAULT            } {
+    #define END          }}}
+#endif
+
+#define OGS_ARG_MAX                     256
+#define OGS_MAX_FILEPATH_LEN            256
+#define OGS_MAX_IFNAME_LEN              32
 
 #ifdef __cplusplus
 }

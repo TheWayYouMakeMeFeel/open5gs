@@ -28,6 +28,45 @@
 extern "C" {
 #endif
 
+#define OGS_GTP_MAX_INDIRECT_TUNNEL 8
+
+#define OGS_GTPV1U_5GC_HEADER_LEN 16
+/*
+ * 5GC GTP Header (16byte)
+ *  o Flags(1byte) : 0x34
+ *  o Message Type(1byte) : T-PDU (0xff)
+ *  o Length(2byte) : 36
+ *  o TEID(4byte) : 0x00000001
+ *  o Next extension header type(4byte)
+ *    - Sequence Number(2byte) : 0x0000
+ *    - N PDU Number(1byte) : 0x00
+ *    - PDU Session container(1byte) : (0x85)
+ *  o Extension header(4byte)
+ *    - Extension HEader Length(1byte) : 1
+ *    - PDU Session Container(2byte)
+ *      ; PDU Type : UL PDU SESSION INFORMATION (1)
+ *      ; QoS Flow Identifier (QFI) : 1
+ *    - Next extension header type : No more extension headers (0x00)
+ */
+
+#define OGS_GTPV1U_EXTENSION_HEADER_LEN 4
+typedef struct ogs_gtp_extension_header_s {
+#define OGS_GTP_EXTENSION_HEADER_TYPE_PDU_SESSION_CONTAINER 0x85
+#define OGS_GTP_EXTENSION_HEADER_TYPE_NO_MORE_EXTENSION_HEADERS 0x0
+    uint16_t sequence_number;
+    uint8_t n_pdu_number;
+    uint8_t type;
+    uint8_t len;
+#define OGS_GTP_EXTENSION_HEADER_PDU_TYPE_DL_PDU_SESSION_INFORMATION 0
+#define OGS_GTP_EXTENSION_HEADER_PDU_TYPE_UL_PDU_SESSION_INFORMATION 1
+    ED2(uint8_t pdu_type:4;,
+        uint8_t spare1:4;);
+    ED3(uint8_t paging_policy_presence:1;,
+        uint8_t reflective_qos_indicator:1;,
+        uint8_t qos_flow_identifier:6;);
+    uint8_t next_type;
+} __attribute__ ((packed)) ogs_gtp_extension_header_t;
+
 /* 8.4 Cause */
 #define OGS_GTP_CAUSE_LOCAL_DETACH  2
 #define OGS_GTP_CAUSE_COMPLETE_DETACH_3
@@ -344,7 +383,7 @@ typedef struct ogs_gtp_uli_s {
     ogs_gtp_uli_cgi_t cgi;
     ogs_gtp_uli_sai_t sai;
     ogs_gtp_uli_rai_t rai;
-    ogs_tai_t tai;
+    ogs_eps_tai_t tai;
     ogs_e_cgi_t e_cgi;
     ogs_gtp_uli_lai_t lai;
 } ogs_gtp_uli_t;
@@ -395,10 +434,10 @@ int16_t ogs_gtp_build_uli(ogs_tlv_octet_t *octet,
 #define OGS_GTP_F_TEID_S11_MME_GTP_U                            38
 #define OGS_GTP_F_TEID_S11_SGW_GTP_U                            39
 
-#define OGS_GTP_F_TEID_HDR_LEN              5
-#define OGS_GTP_F_TEID_IPV4_LEN             OGS_IPV4_LEN+OGS_GTP_F_TEID_HDR_LEN
-#define OGS_GTP_F_TEID_IPV6_LEN             OGS_IPV6_LEN+OGS_GTP_F_TEID_HDR_LEN
-#define OGS_GTP_F_TEID_IPV4V6_LEN           OGS_IPV4V6_LEN+OGS_GTP_F_TEID_HDR_LEN
+#define OGS_GTP_F_TEID_HDR_LEN          5
+#define OGS_GTP_F_TEID_IPV4_LEN         OGS_IPV4_LEN+OGS_GTP_F_TEID_HDR_LEN
+#define OGS_GTP_F_TEID_IPV6_LEN         OGS_IPV6_LEN+OGS_GTP_F_TEID_HDR_LEN
+#define OGS_GTP_F_TEID_IPV4V6_LEN       OGS_IPV4V6_LEN+OGS_GTP_F_TEID_HDR_LEN
 typedef struct ogs_gtp_f_teid_s {
 ED3(uint8_t       ipv4:1;,
     uint8_t       ipv6:1;,
@@ -460,4 +499,3 @@ ED2(uint8_t spare:6;,
 #endif
 
 #endif /* OGS_GTP_TYPES_H */
-

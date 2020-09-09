@@ -28,6 +28,7 @@ libcrypt_sources = files('''
     snow-3g.h
     zuc.h
     kasumi.h
+    ogs-kdf.h
 
     ogs-aes.c
     ogs-aes-cmac.c
@@ -39,6 +40,9 @@ libcrypt_sources = files('''
     snow-3g.c
     zuc.c
     kasumi.c
+
+    ogs-kdf.c
+    ogs-base64.c
 '''.split())
 
 libcrypt_inc = include_directories('.')

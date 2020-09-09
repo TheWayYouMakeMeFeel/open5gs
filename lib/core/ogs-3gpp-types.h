@@ -28,12 +28,17 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#define OGS_MAX_FILEPATH_LEN            256
-
 #define OGS_MAX_NUM_OF_SESS             4   /* Num of APN(Session) per UE */
+#define OGS_MAX_NUM_OF_BEARER           4   /* Num of Bearer per Session */
+#define OGS_MAX_NUM_OF_RULE             4   /* Num of Rule per Session */
+#define OGS_MAX_NUM_OF_PF               16  /* Num of PacketFilter per Bearer */
+
+/* Num of PacketFilter per Bearer(GTP) or QoS(NAS-5GS) */
+#define OGS_MAX_NUM_OF_PACKET_FILTER    16
 
 #define OGS_MAX_SDU_LEN                 8192
 #define OGS_PLMN_ID_LEN                 3
+#define OGS_MAX_PLMN_ID_BCD_LEN         6
 
 #define OGS_BCD_TO_BUFFER_LEN(x)        (((x)+1)/2)
 #define OGS_MAX_IMSI_BCD_LEN            15
@@ -44,10 +49,23 @@ extern "C" {
 #define OGS_MAX_IMEISV_LEN              \
     OGS_BCD_TO_BUFFER_LEN(OGS_MAX_IMEISV_BCD_LEN)
 
+#define OGS_MAX_MSISDN_BCD_LEN          15
+#define OGS_MAX_MSISDN_LEN              \
+    OGS_BCD_TO_BUFFER_LEN(OGS_MAX_MSISDN_BCD_LEN)
+
+#define OGS_MAX_NUM_OF_CELL_ID          16
+#define OGS_MAX_NUM_OF_ENB_ID           16
+#define OGS_MAX_NUM_OF_APN              16
 #define OGS_MAX_NUM_OF_HOSTNAME         16
-#define OGS_MAX_APN_LEN                 100
+#define OGS_MAX_DNN_LEN                 100
+#define OGS_MAX_APN_LEN                 OGS_MAX_DNN_LEN
 #define OGS_MAX_PCO_LEN                 251
 #define OGS_MAX_FQDN_LEN                256
+
+#define OGS_MAX_NUM_OF_SERVED_TAI       16
+#define OGS_MAX_NUM_OF_ALGORITHM        8
+
+#define OGS_MAX_NUM_OF_BPLMN            6
 
 #define OGS_NEXT_ID(__id, __min, __max) \
     ((__id) = ((__id) == (__max) ? (__min) : ((__id) + 1)))
@@ -59,9 +77,17 @@ extern "C" {
     (((((x) % 10) << 4) & 0xf0) | (((x) / 10) & 0x0f))
 
 #define OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED 0
+#define OGS_NAS_PDU_SESSION_IDENTITY_UNASSIGNED 0
 
-/**********************************
- * PLMN_ID Structure             */
+#define OGS_ACCESS_TYPE_3GPP 1
+#define OGS_ACCESS_TYPE_NON_3GPP 2
+#define OGS_ACCESS_TYPE_BOTH_3GPP_AND_NON_3GPP 3
+
+#define OGS_MAX_QOS_FLOW_ID             63
+
+/************************************
+ * PLMN_ID Structure                */
+#define OGS_MAX_NUM_OF_PLMN         6
 typedef struct ogs_plmn_id_s {
 ED2(uint8_t mcc2:4;,
     uint8_t mcc1:4;)
@@ -80,17 +106,86 @@ uint16_t ogs_plmn_id_mnc_len(ogs_plmn_id_t *plmn_id);
 void *ogs_plmn_id_build(ogs_plmn_id_t *plmn_id, 
         uint16_t mcc, uint16_t mnc, uint16_t mnc_len);
 
-#define OGS_MAX_NUM_OF_TAI              16
+char *ogs_serving_network_name_from_plmn_id(ogs_plmn_id_t *plmn_id);
+char *ogs_plmn_id_mcc_string(ogs_plmn_id_t *plmn_id);
+char *ogs_plmn_id_mnc_string(ogs_plmn_id_t *plmn_id);
 
-typedef struct ogs_tai_s {
+#define OGS_PLMNIDSTRLEN    (sizeof(ogs_plmn_id_t)*2+1)
+char *ogs_plmn_id_to_string(ogs_plmn_id_t *plmn_id, char *buf);
+
+/************************************
+ * AMF_ID Structure                 */
+typedef struct ogs_amf_id_s {
+    uint8_t region;
+    uint8_t set1;
+ED2(uint8_t set2:2;,
+    uint8_t pointer:6;)
+} __attribute__ ((packed)) ogs_amf_id_t;
+
+typedef struct ogs_guami_s {
+    ogs_plmn_id_t plmn_id;
+    ogs_amf_id_t amf_id;
+} ogs_guami_t;
+
+uint32_t ogs_amf_id_hexdump(ogs_amf_id_t *amf_id);
+
+ogs_amf_id_t *ogs_amf_id_from_string(ogs_amf_id_t *amf_id, const char *hex);
+char *ogs_amf_id_to_string(ogs_amf_id_t *amf_id);
+
+uint8_t ogs_amf_region_id(ogs_amf_id_t *amf_id);
+uint16_t ogs_amf_set_id(ogs_amf_id_t *amf_id);
+uint8_t ogs_amf_pointer(ogs_amf_id_t *amf_id);
+
+ogs_amf_id_t *ogs_amf_id_build(ogs_amf_id_t *amf_id,
+        uint8_t region, uint16_t set, uint8_t pointer);
+
+/************************************
+ * SUPI/SUCI                       */
+char *ogs_supi_from_suci(char *suci);
+
+/************************************
+ * SUPI/GPSI                       */
+#define OGS_ID_SUPI_TYPE_IMSI "imsi"
+#define OGS_ID_GPSI_TYPE_MSISDN "msisdn"
+char *ogs_id_get_type(char *str);
+char *ogs_id_get_value(char *str);
+
+/************************************
+ * TAI Structure                    */
+#define OGS_MAX_NUM_OF_TAI              16
+typedef struct ogs_eps_tai_s {
     ogs_plmn_id_t plmn_id;
     uint16_t tac;
-} __attribute__ ((packed)) ogs_tai_t;
+} __attribute__ ((packed)) ogs_eps_tai_t;
+
+typedef struct ogs_5gs_tai_s {
+    ogs_plmn_id_t plmn_id;
+    ogs_uint24_t tac;
+} __attribute__ ((packed)) ogs_5gs_tai_t;
 
 typedef struct ogs_e_cgi_s {
     ogs_plmn_id_t plmn_id;
     uint32_t cell_id; /* 28 bit */
 } __attribute__ ((packed)) ogs_e_cgi_t;
+
+typedef struct ogs_nr_cgi_s {
+    ogs_plmn_id_t plmn_id;
+    uint64_t cell_id; /* 36 bit */
+} __attribute__ ((packed)) ogs_nr_cgi_t;
+
+/************************************
+ * S-NSSAI Structure                */
+#define OGS_MAX_NUM_OF_S_NSSAI      16
+#define OGS_S_NSSAI_NO_SD_VALUE     0xffffff
+typedef struct ogs_s_nssai_s {
+    uint8_t sst;
+    ogs_uint24_t sd;
+    uint8_t mapped_hplmn_sst;
+    ogs_uint24_t mapped_hplmn_sd;
+} __attribute__ ((packed)) ogs_s_nssai_t;
+
+char *ogs_s_nssai_sd_to_string(ogs_uint24_t sd);
+ogs_uint24_t ogs_s_nssai_sd_from_string(const char *hex);
 
 /**************************************************
  * Common Structure
@@ -100,32 +195,36 @@ typedef struct ogs_e_cgi_s {
 #define OGS_IPV6_LEN                16
 #define OGS_IPV4V6_LEN              20
 typedef struct ogs_ip_s {
-    union {
-        uint32_t addr;
-        uint8_t addr6[OGS_IPV6_LEN];
-        struct {
-            uint32_t addr;
-            uint8_t addr6[OGS_IPV6_LEN];
-        } both;
-    };
-    uint32_t      len;
-ED3(uint8_t       ipv4:1;,
-    uint8_t       ipv6:1;,
-    uint8_t       reserved:6;)
+    uint32_t addr;
+    uint8_t addr6[OGS_IPV6_LEN];
+    uint32_t len;
+ED3(uint8_t ipv4:1;,
+    uint8_t ipv6:1;,
+    uint8_t reserved:6;)
 } ogs_ip_t;
+
+int ogs_ip_to_sockaddr(ogs_ip_t *ip, uint16_t port, ogs_sockaddr_t **list);
+void ogs_sockaddr_to_ip(
+        ogs_sockaddr_t *addr, ogs_sockaddr_t *addr6, ogs_ip_t *ip);
+char *ogs_ipv4_to_string(uint32_t addr);
+char *ogs_ipv6_to_string(uint8_t *addr6);
 
 /**************************************************
  * 8.14 PDN Address Allocation (PAA) */
-#define OGS_PAA_IPV4_LEN                                    5
-#define OGS_PAA_IPV6_LEN                                    18
-#define OGS_PAA_IPV4V6_LEN                                  22
+#define OGS_PAA_IPV4_LEN                                5
+#define OGS_PAA_IPV6_LEN                                18
+#define OGS_PAA_IPV4V6_LEN                              22
 typedef struct ogs_paa_s {
-/* 8.34 PDN Type  */
-#define OGS_GTP_PDN_TYPE_IPV4                               1
-#define OGS_GTP_PDN_TYPE_IPV6                               2
-#define OGS_GTP_PDN_TYPE_IPV4V6                             3
-#define OGS_GTP_PDN_TYPE_NON_IP                             4
 ED2(uint8_t spare:5;,
+/* 8.34 PDN Type  */
+#define OGS_GTP_PDN_TYPE_IPV4                   OGS_PDU_SESSION_TYPE_IPV4
+#define OGS_GTP_PDN_TYPE_IPV6                   OGS_PDU_SESSION_TYPE_IPV6
+#define OGS_GTP_PDN_TYPE_IPV4V6                 OGS_PDU_SESSION_TYPE_IPV4V6
+#define OGS_GTP_PDN_TYPE_NON_IP                 OGS_PDU_SESSION_TYPE_NONIP
+#define OGS_PFCP_PDN_TYPE_IPV4                  OGS_PDU_SESSION_TYPE_IPV4
+#define OGS_PFCP_PDN_TYPE_IPV6                  OGS_PDU_SESSION_TYPE_IPV6
+#define OGS_PFCP_PDN_TYPE_IPV4V6                OGS_PDU_SESSION_TYPE_IPV4V6
+#define OGS_PFCP_PDN_TYPE_NONIP                 OGS_PDU_SESSION_TYPE_NONIP
     uint8_t pdn_type:3;)
     union {
         /* GTP_PDN_TYPE_IPV4 */
@@ -241,14 +340,36 @@ typedef struct ogs_pcc_rule_s {
     ogs_qos_t  qos;
 } ogs_pcc_rule_t;
 
+#define OGS_STORE_PCC_RULE(__dST, __sRC) \
+    do { \
+        int __iNDEX; \
+        ogs_assert((__sRC)); \
+        ogs_assert((__dST)); \
+        OGS_PCC_RULE_FREE(__dST); \
+        (__dST)->type = (__sRC)->type; \
+        if ((__sRC)->name) { \
+            (__dST)->name = ogs_strdup((__sRC)->name); \
+            ogs_assert((__dST)->name); \
+        } else \
+            ogs_assert_if_reached(); \
+        for (__iNDEX = 0; __iNDEX < (__sRC)->num_of_flow; __iNDEX++) { \
+            (__dST)->flow[__iNDEX].direction = (__sRC)->flow[__iNDEX].direction; \
+            (__dST)->flow[__iNDEX].description = \
+                ogs_strdup((__sRC)->flow[__iNDEX].description);  \
+            ogs_assert((__dST)->flow[__iNDEX].description); \
+        } \
+        (__dST)->num_of_flow = (__sRC)->num_of_flow; \
+        (__dST)->flow_status = (__sRC)->flow_status; \
+        (__dST)->precedence = (__sRC)->precedence; \
+        memcpy(&(__dST)->qos, &(__sRC)->qos, sizeof(ogs_qos_t)); \
+    } while(0)
+
 #define OGS_PCC_RULE_FREE(__pCCrULE) \
     do { \
         int __pCCrULE_iNDEX; \
         ogs_assert((__pCCrULE)); \
-        if ((__pCCrULE)->name) { \
+        if ((__pCCrULE)->name) \
             ogs_free((__pCCrULE)->name); \
-        } else \
-            ogs_assert_if_reached(); \
         for (__pCCrULE_iNDEX = 0; \
             __pCCrULE_iNDEX < (__pCCrULE)->num_of_flow; __pCCrULE_iNDEX++) { \
             OGS_FLOW_FREE(&((__pCCrULE)->flow[__pCCrULE_iNDEX])); \
@@ -259,19 +380,33 @@ typedef struct ogs_pcc_rule_s {
 /**********************************
  * PDN Structure                 */
 typedef struct ogs_pdn_s {
-    uint32_t        context_identifier;
-    char            apn[OGS_MAX_APN_LEN+1];
+    uint32_t context_identifier;
+    union {
+        char apn[OGS_MAX_APN_LEN+1];
+        char dnn[OGS_MAX_DNN_LEN+1];
+    };
 #define OGS_DIAM_PDN_TYPE_IPV4                      0
 #define OGS_DIAM_PDN_TYPE_IPV6                      1
 #define OGS_DIAM_PDN_TYPE_IPV4V6                    2
 #define OGS_DIAM_PDN_TYPE_IPV4_OR_IPV6              3
-    int             pdn_type;
+#define OGS_PDU_SESSION_TYPE_IPV4                   1
+#define OGS_PDU_SESSION_TYPE_IPV6                   2
+#define OGS_PDU_SESSION_TYPE_IPV4V6                 3
+#define OGS_PDU_SESSION_TYPE_UNSTRUCTURED           4
+#define OGS_PDU_SESSION_TYPE_ETHERNET               5
+    uint8_t pdn_type;
 
-    ogs_qos_t       qos;
-    ogs_bitrate_t   ambr; /* APN-AMBR */
+#define OGS_SSC_MODE_1                              1
+#define OGS_SSC_MODE_2                              2
+#define OGS_SSC_MODE_3                              3
+    uint8_t ssc_mode;
 
-    ogs_paa_t       paa;
-    ogs_ip_t        pgw_ip;
+    ogs_qos_t qos;
+    ogs_bitrate_t ambr; /* APN-AMBR */
+
+    ogs_paa_t paa;
+    ogs_ip_t ue_ip;
+    ogs_ip_t pgw_ip;
 } ogs_pdn_t;
 
 int ogs_fqdn_build(char *dst, char *src, int len);
@@ -326,6 +461,41 @@ ED3(uint8_t ext:1;,
 
 int ogs_pco_parse(ogs_pco_t *pco, unsigned char *data, int data_len);
 int ogs_pco_build(unsigned char *data, int data_len, ogs_pco_t *pco);
+
+typedef struct ogs_subscription_data_s {
+#define OGS_ACCESS_RESTRICTION_UTRAN_NOT_ALLOWED                (1)
+#define OGS_ACCESS_RESTRICTION_GERAN_NOT_ALLOWED                (1<<1)
+#define OGS_ACCESS_RESTRICTION_GAN_NOT_ALLOWED                  (1<<2)
+#define OGS_ACCESS_RESTRICTION_I_HSPA_EVOLUTION_NOT_ALLOWED     (1<<3)
+#define OGS_ACCESS_RESTRICTION_WB_E_UTRAN_NOT_ALLOWED           (1<<4)
+#define OGS_ACCESS_RESTRICTION_HO_TO_NON_3GPP_ACCESS_NOT_ALLOWED (1<<5)
+#define OGS_ACCESS_RESTRICTION_NB_IOT_NOT_ALLOWED               (1<<6)
+    uint32_t                access_restriction_data;
+#define OGS_SUBSCRIBER_STATUS_SERVICE_GRANTED                   0
+#define OGS_SUBSCRIBER_STATUS_OPERATOR_DETERMINED_BARRING       1
+    uint32_t                subscriber_status;
+#define OGS_NETWORK_ACCESS_MODE_PACKET_AND_CIRCUIT              0
+#define OGS_NETWORK_ACCESS_MODE_RESERVED                        1
+#define OGS_NETWORK_ACCESS_MODE_ONLY_PACKET                     2
+    uint32_t                network_access_mode;
+
+    ogs_bitrate_t           ambr;                           /* UE-AMBR */
+
+#define OGS_RAU_TAU_DEFAULT_TIME                (12*60)     /* 12 min */
+    uint32_t                subscribed_rau_tau_timer;       /* unit : seconds */
+
+    uint32_t                context_identifier;             /* default APN */
+    ogs_pdn_t               pdn[OGS_MAX_NUM_OF_SESS];
+    int                     num_of_pdn;
+
+#define OGS_MAX_NUM_OF_MSISDN                                   4
+    int num_of_msisdn;
+    struct {
+        uint8_t buf[OGS_MAX_MSISDN_LEN];
+        int len;
+        char bcd[OGS_MAX_MSISDN_BCD_LEN+1];
+    } msisdn[OGS_MAX_NUM_OF_MSISDN];
+} ogs_subscription_data_t;
 
 #ifdef __cplusplus
 }

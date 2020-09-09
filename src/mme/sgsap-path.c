@@ -33,8 +33,8 @@ int sgsap_open()
     ogs_list_for_each(&mme_self()->vlr_list, vlr) {
         mme_event_t e;
 
+        memset(&e, 0, sizeof(e));
         e.vlr = vlr;
-        e.id = 0;
 
         ogs_fsm_create(&vlr->sm, sgsap_state_initial, sgsap_state_final);
         ogs_fsm_init(&vlr->sm, &e);
@@ -49,6 +49,7 @@ void sgsap_close()
 
     ogs_list_for_each(&mme_self()->vlr_list, vlr) {
         mme_event_t e;
+        memset(&e, 0, sizeof(e));
         e.vlr = vlr;
 
         ogs_fsm_fini(&vlr->sm, &e);
@@ -210,8 +211,8 @@ void sgsap_send_reset_ack(mme_vlr_t *vlr)
     ogs_expect(rv == OGS_OK);
 }
 
-void sgsap_send_uplink_unitdata(
-        mme_ue_t *mme_ue, ogs_nas_message_container_t *nas_message_container)
+void sgsap_send_uplink_unitdata(mme_ue_t *mme_ue,
+        ogs_nas_eps_message_container_t *nas_message_container)
 {
     int rv;
     ogs_pkbuf_t *pkbuf = NULL;

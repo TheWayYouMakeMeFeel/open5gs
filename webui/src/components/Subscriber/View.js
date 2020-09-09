@@ -215,12 +215,6 @@ const View = ({ visible, disableOnClickOutside, subscriber, onEdit, onDelete, on
                     {security.amf}
                     <span style={{color:oc.gray[5]}}><KeyboardControlIcon/>AMF</span>
                   </div>
-                  {security.rand &&
-                    <div className="data">
-                      {security.rand}
-                      <span style={{color:oc.gray[5]}}><KeyboardControlIcon/>RAND</span>
-                    </div>
-                  }
                   {security.sqn &&
                     <div className="data">
                       {security.sqn}
@@ -236,11 +230,11 @@ const View = ({ visible, disableOnClickOutside, subscriber, onEdit, onDelete, on
                 <div className="right">
                   <div className="data">
                     {ambr.downlink} Kbps
-                    <span style={{color:oc.gray[5]}}><KeyboardControlIcon/>UL</span>
+                    <span style={{color:oc.gray[5]}}><KeyboardControlIcon/>DL</span>
                   </div>
                   <div className="data">
                     {ambr.uplink} Kbps
-                    <span style={{color:oc.gray[5]}}><KeyboardControlIcon/>DL</span>
+                    <span style={{color:oc.gray[5]}}><KeyboardControlIcon/>UL</span>
                   </div>
                 </div>
               </div>

@@ -540,11 +540,16 @@
 #include "S1AP_WriteReplaceWarningResponse.h"
 #include "S1AP_X2TNLConfigurationInfo.h"
 #include "S1AP_asn_constant.h"
+#include "S1AP_EXTERNAL.h"
+
+#include "asn1c/util/conv.h"
+#include "asn1c/util/message.h"
 
 #define OGS_S1AP_INSIDE
 
 #include "s1ap/conv.h"
 #include "s1ap/message.h"
+#include "s1ap/build.h"
 
 #undef OGS_S1AP_INSIDE
 

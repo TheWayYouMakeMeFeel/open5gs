@@ -16,7 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 project('open5gs', 'c',
-    version : '1.2.0',
+    version : '2.0.4',
     license : 'AGPL-3.0-or-later',
     meson_version : '>= 0.43.0',
     default_options : [
@@ -24,7 +24,7 @@ project('open5gs', 'c',
     ],
 )
 
-libogslib_version = '1.2.0'
+libogslib_version = '2.0.4'
 
 prefix = get_option('prefix')
 bindir = join_paths(prefix, get_option('bindir'))
@@ -35,6 +35,7 @@ localstatedir = join_paths(prefix, get_option('localstatedir'))
 cc = meson.get_compiler('c')
 host_system = host_machine.system()
 
+git = find_program('git', required: false)
 #python = import('python')
 #python3 = python.find_installation('python3')
 python3 = find_program('python3', 'python')
@@ -111,6 +112,7 @@ add_project_arguments(
 subdir('configs')
 subdir('lib')
 subdir('src')
+subdir('misc')
 # Don’t build the tests unless we can run them (either natively or in an exe wrapper)
 build_tests = not meson.is_cross_build() or (meson.is_cross_build() and meson.has_exe_wrapper())
 if build_tests

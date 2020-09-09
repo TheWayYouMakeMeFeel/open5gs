@@ -40,13 +40,16 @@ void mme_s6a_handle_aia(mme_ue_t *mme_ue,
 
     CLEAR_MME_UE_TIMER(mme_ue->t3460);
 
-    nas_send_authentication_request(mme_ue, e_utran_vector);
+    if (mme_ue->nas_eps.ksi == OGS_NAS_KSI_NO_KEY_IS_AVAILABLE)
+        mme_ue->nas_eps.ksi = 0;
+
+    nas_eps_send_authentication_request(mme_ue, e_utran_vector);
 }
 
 void mme_s6a_handle_ula(mme_ue_t *mme_ue,
         ogs_diam_s6a_ula_message_t *ula_message)
 {
-    ogs_diam_s6a_subscription_data_t *subscription_data = NULL;
+    ogs_subscription_data_t *subscription_data = NULL;
 
     ogs_assert(mme_ue);
     ogs_assert(ula_message);
@@ -54,5 +57,5 @@ void mme_s6a_handle_ula(mme_ue_t *mme_ue,
     ogs_assert(subscription_data);
 
     memcpy(&mme_ue->subscription_data,
-            subscription_data, sizeof(ogs_diam_s6a_subscription_data_t));
+            subscription_data, sizeof(ogs_subscription_data_t));
 }

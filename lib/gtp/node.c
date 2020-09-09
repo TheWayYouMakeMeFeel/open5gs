@@ -21,17 +21,16 @@
 
 static OGS_POOL(pool, ogs_gtp_node_t);
 
-int ogs_gtp_node_init(int size)
+int ogs_gtp_node_init(void)
 {
-    ogs_pool_init(&pool, size);
+    ogs_pool_init(&pool, ogs_app()->pool.gtp_node);
 
     return OGS_OK;
 }
-int ogs_gtp_node_final(void)
+
+void ogs_gtp_node_final(void)
 {
     ogs_pool_final(&pool);
-
-    return OGS_OK;
 }
 
 ogs_gtp_node_t *ogs_gtp_node_new(ogs_sockaddr_t *sa_list)
@@ -65,7 +64,8 @@ void ogs_gtp_node_free(ogs_gtp_node_t *node)
     ogs_pool_free(&pool, node);
 }
 
-ogs_gtp_node_t *ogs_gtp_node_add(ogs_list_t *list, ogs_gtp_f_teid_t *f_teid,
+ogs_gtp_node_t *ogs_gtp_node_add_by_f_teid(
+        ogs_list_t *list, ogs_gtp_f_teid_t *f_teid,
         uint16_t port, int no_ipv4, int no_ipv6, int prefer_ipv4)
 {
     int rv;
@@ -96,8 +96,7 @@ ogs_gtp_node_t *ogs_gtp_node_add(ogs_list_t *list, ogs_gtp_f_teid_t *f_teid,
     return node;
 }
 
-ogs_gtp_node_t *ogs_gtp_node_add_by_addr(
-        ogs_list_t *list, ogs_sockaddr_t *addr)
+ogs_gtp_node_t *ogs_gtp_node_add_by_addr(ogs_list_t *list, ogs_sockaddr_t *addr)
 {
     ogs_gtp_node_t *gnode = NULL;
     ogs_sockaddr_t *new = NULL;
@@ -109,7 +108,7 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_addr(
     gnode = ogs_gtp_node_new(new);
 
     ogs_assert(gnode);
-    memcpy(&gnode->remote_addr, new, sizeof gnode->remote_addr);
+    memcpy(&gnode->addr, new, sizeof gnode->addr);
 
     ogs_list_add(list, gnode);
 
@@ -142,7 +141,7 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_addr(
     ogs_assert(addr);
 
     ogs_list_for_each(list, node) {
-        if (ogs_sockaddr_is_equal(&node->remote_addr, addr) == true)
+        if (ogs_sockaddr_is_equal(&node->addr, addr) == true)
             break;
     }
 
@@ -163,7 +162,52 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_f_teid(
     ogs_assert(rv == OGS_OK);
 
     ogs_list_for_each(list, node) {
-        if (memcmp(&node->ip, &ip, ip.len) == 0)
+        if (memcmp(&node->ip, &ip, sizeof(ip)) == 0)
+            break;
+    }
+
+    return node;
+}
+
+ogs_gtp_node_t *ogs_gtp_node_add_by_ip(ogs_list_t *list, ogs_ip_t *ip,
+        uint16_t port, int no_ipv4, int no_ipv6, int prefer_ipv4)
+{
+    int rv;
+    ogs_gtp_node_t *node = NULL;
+    ogs_sockaddr_t *addr = NULL;
+
+    ogs_assert(list);
+    ogs_assert(ip);
+    ogs_assert(port);
+
+    rv = ogs_ip_to_sockaddr(ip, port, &addr);
+    ogs_assert(rv == OGS_OK);
+
+    rv = ogs_filter_ip_version(&addr, no_ipv4, no_ipv6, prefer_ipv4);
+    ogs_assert(addr);
+
+    rv = ogs_socknode_fill_scope_id_in_local(addr);
+    ogs_assert(rv == OGS_OK);
+
+    node = ogs_gtp_node_new(addr);
+    ogs_assert(node);
+
+    memcpy(&node->ip, ip, sizeof(*ip));
+
+    ogs_list_add(list, node);
+
+    return node;
+}
+
+ogs_gtp_node_t *ogs_gtp_node_find_by_ip(ogs_list_t *list, ogs_ip_t *ip)
+{
+    ogs_gtp_node_t *node = NULL;
+
+    ogs_assert(list);
+    ogs_assert(ip);
+
+    ogs_list_for_each(list, node) {
+        if (node->ip.len == ip->len && memcmp(&node->ip, ip, ip->len) == 0)
             break;
     }
 

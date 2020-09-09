@@ -29,7 +29,7 @@ void mme_send_delete_session_or_detach(mme_ue_t *mme_ue)
     if (SESSION_CONTEXT_IS_AVAILABLE(mme_ue)) {
         mme_gtp_send_delete_all_sessions(mme_ue);
     } else {
-        nas_send_detach_accept(mme_ue);
+        nas_eps_send_detach_accept(mme_ue);
     }
 }
 
@@ -74,10 +74,10 @@ void mme_send_release_access_bearer_or_ue_context_release(enb_ue_t *enb_ue)
     mme_ue = enb_ue->mme_ue;
     if (mme_ue) {
         if (BEARER_CONTEXT_IS_ACTIVE(mme_ue)) {
-            ogs_debug("    EMM-Registered");
+            ogs_debug("[%s] EMM-Registered", mme_ue->imsi_bcd);
             mme_gtp_send_release_access_bearers_request(mme_ue);
         } else {
-            ogs_warn("No EMM-Registered");
+            ogs_warn("[%s] No EMM-Registered", mme_ue->imsi_bcd);
             mme_send_delete_session_or_mme_ue_context_release(mme_ue);
         }
     } else {
